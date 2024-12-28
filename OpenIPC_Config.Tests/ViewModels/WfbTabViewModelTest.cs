@@ -124,6 +124,7 @@ public class WfbTabViewModelTest : ViewModelTestBase
         Assert.Equal(25, viewModel.SelectedPower);
         Assert.Equal(161, viewModel.SelectedChannel);
         Assert.Equal(1, viewModel.SelectedMcsIndex);
+        Assert.Equal(20, viewModel.SelectedBandwidth);
     }
 
     [Fact]
@@ -147,6 +148,7 @@ public class WfbTabViewModelTest : ViewModelTestBase
         //viewModel.SelectedChannel = 36;
         //viewModel.SelectedFrequency24String = "2412 MHz [1]";
         viewModel.SelectedPower = 20;
+        viewModel.SelectedBandwidth = 40;
         viewModel.SelectedPower24GHz = 15;
         viewModel.SelectedMcsIndex = 7;
         viewModel.SelectedStbc = 1;
@@ -163,6 +165,7 @@ public class WfbTabViewModelTest : ViewModelTestBase
         Assert.Contains("txpower=15", viewModel.WfbConfContent);
         Assert.Contains("mcs_index=7", viewModel.WfbConfContent);
         Assert.Contains("fec_n=6", viewModel.WfbConfContent);
+        Assert.Contains("bandwidth=40", viewModel.WfbConfContent);
     }
 
     

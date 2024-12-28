@@ -227,6 +227,15 @@ namespace OpenIPC_Config.Assets {
             get { return ResourceManager.GetString("UpdateCameraToolTip", resourceCulture); }
         }
         
+        public static string cmboBandwidthToolTip
+        {
+            get { return ResourceManager.GetString("cmboBandwidthToolTip", resourceCulture); }
+        }
+
+        public static string TunnelToolTip
+        {
+            get { return ResourceManager.GetString("TunnelToolTip", resourceCulture); }
+        }
         
     }
 }

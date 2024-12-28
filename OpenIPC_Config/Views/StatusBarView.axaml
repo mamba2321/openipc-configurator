@@ -35,13 +35,13 @@
             </Border>
 
 
-            <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="2">
-                <Label FontWeight="Bold" Content="Status:" />
-            </Border>
-
-            <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="3">
-                <TextBlock VerticalAlignment="Center" Width="100" Text="{Binding StatusText}" />
-            </Border>
+            <!-- <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="2"> -->
+            <!--     <Label FontWeight="Bold" Content="Status:" /> -->
+            <!-- </Border> -->
+            <!-- -->
+            <!-- <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="3"> -->
+            <!--     <TextBlock VerticalAlignment="Center" Width="100" Text="{Binding StatusText}" /> -->
+            <!-- </Border> -->
 
             <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="4">
                 <Label FontWeight="Bold" Content="Last Message:" />

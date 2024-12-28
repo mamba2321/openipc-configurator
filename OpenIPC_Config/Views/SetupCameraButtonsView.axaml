@@ -20,6 +20,7 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <Grid.ColumnDefinitions>
@@ -88,6 +89,8 @@
                     Command="{Binding RecvDroneKeyCommand}" IsEnabled="{Binding CanConnect}"
                     ToolTip.Tip="{x:Static assets:Resources.RecvDroneKeyToolTip}"
                     HorizontalAlignment="Stretch" />
+            
+            
 
             <TextBlock Grid.Row="6" Text="Device Checksum" />
             <TextBlock Grid.Row="7" Grid.ColumnSpan="2"
@@ -95,6 +98,28 @@
                        MaxWidth="375"
                        Foreground="{Binding ChkSumStatusColor}"
                        Text="{Binding KeyChecksum} " />
+            
+            <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center"
+                           Padding="0,0,5,0"
+                           ToolTip.Tip="{x:Static assets:Resources.TunnelToolTip}">Tunnel</TextBlock>
+                <RadioButton Content="Enabled"
+                             Padding="3,3,5,0"
+                             GroupName="TunnelEnable" 
+                              
+                             IsEnabled="{Binding CanConnect}"
+                             IsChecked="{Binding IsTunnelEnabled, Mode=TwoWay}"
+                             VerticalContentAlignment="Center"
+                             HorizontalAlignment="Stretch" />
+                <RadioButton Content="Disabled"
+                             Padding="3,3,5,0"
+                             GroupName="TunnelEnable"
+                             VerticalContentAlignment="Center"
+                             IsEnabled="{Binding CanConnect}"
+                             IsChecked="{Binding IsTunnelDisabled, Mode=TwoWay}"
+                             HorizontalAlignment="Stretch" />
+            </StackPanel>
+            
 
 
         </Grid>

@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 
-namespace OpenIPC_Config.Services;
+namespace OpenIPC_Config.Converters;
 
 public class EnumToBoolConverter : IValueConverter
 {

@@ -13,8 +13,11 @@ namespace OpenIPC_Config.Views;
 
 public partial class MainView : UserControl
 {
+    
+    
     public MainView()
     {
+        
         InitializeComponent();
 
         if (!Design.IsDesignMode)

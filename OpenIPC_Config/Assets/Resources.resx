@@ -181,4 +181,10 @@ If you set 90fps GOP: 1 , real gop is 90 and if you set value to 9 the correctio
     <data name="UpdateCameraToolTip" xml:space="preserve">
         <value>Updates Camera's firmware to selected firmware</value>
     </data>
+    <data name="cmboBandwidthToolTip" xml:space="preserve">
+        <value>Select Bandwidth</value>
+    </data>
+    <data name="TunnelToolTip" xml:space="preserve">
+        <value>Enables/Disables Wifi Tunnel, enabled will create a network tunnel to the camera on ip 10.0.4.1</value>
+    </data>
 </root>

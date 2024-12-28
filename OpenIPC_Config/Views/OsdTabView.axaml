@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OpenIPC_Config.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="520"
+             x:Class="OpenIPC_Config.Views.OsdTabView"
+             x:DataType="vm:OsdTabViewModel">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        
+        <!-- OSD Area -->
+        <Canvas x:Name="OsdCanvas" Background="Black" Width="731" Height="480" VerticalAlignment="Center">
+            <!-- Background Image -->
+            <Image Source="avares://OpenIPC_Config/Assets/osd_image.png" Stretch="Fill" Width="731" Height="480" />
+
+            <!-- Grid Overlay -->
+            <Canvas>
+                <!-- Vertical Grid Lines -->
+                <ItemsControl ItemsSource="{Binding VerticalGridLines}" Width="731" Height="480">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Line StartPoint="{Binding ., Converter={StaticResource XToStartPointConverter}}" 
+                                  EndPoint="{Binding ., Converter={StaticResource XToEndPointConverter}}" 
+                                  Stroke="Gray" StrokeThickness="0.5" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Horizontal Grid Lines -->
+                <ItemsControl ItemsSource="{Binding HorizontalGridLines}" Width="731" Height="480">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Line StartPoint="{Binding ., Converter={StaticResource YToStartPointConverter}}" 
+                                  EndPoint="{Binding ., Converter={StaticResource YToEndPointConverter}}" 
+                                  Stroke="Gray" StrokeThickness="0.5" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                
+                
+            </Canvas>
+
+            <!-- Overlay Items -->
+            <Border BorderBrush="Transparent" BorderThickness="1">
+                <ItemsControl ItemsSource="{Binding OverlayItems}" Width="731" Height="480">
+                    <!-- Set the Canvas as the ItemsPanel -->
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <!-- Apply a Style to the ContentPresenter -->
+                    <ItemsControl.Styles>
+                        <Style Selector="ContentPresenter" x:DataType="vm:OverlayItem">
+                            <Setter Property="Canvas.Left" Value="{Binding PositionX}" />
+                            <Setter Property="Canvas.Top" Value="{Binding PositionY}" />
+                        </Style>
+                    </ItemsControl.Styles>
+                    <ItemsControl.ItemTemplate>
+                        <!-- Specify the x:DataType for OverlayItem -->
+                        <DataTemplate x:DataType="vm:OverlayItem">
+                            <Border BorderBrush="Transparent" BorderThickness="1"
+                                    PointerPressed="Control_PointerPressed"
+                                    PointerMoved="Control_PointerMoved"
+                                    PointerReleased="Control_PointerReleased"
+                                    IsHitTestVisible="{Binding IsVisible}"
+                                    Opacity="{Binding IsVisible, Converter={StaticResource BooleanToOpacityConverter}}">
+                                <TextBlock Text="{Binding DisplayValue}" Foreground="White" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </Canvas>
+        
+        
+        <!-- Overlay Configuration Panel -->
+        <StackPanel Grid.Column="1" Background="Black" >
+            <TextBlock Text="Overlay Items" FontWeight="Bold" Margin="5,5,0,10" />
+            <ItemsControl ItemsSource="{Binding OverlayItems}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Height="20" Margin="5,0,0,3">
+                            <CheckBox IsChecked="{Binding IsVisible}" 
+                                      VerticalAlignment="Center" 
+                                      FontSize="12"
+                                      Margin="0"
+                                      Height="3"
+                                      Padding="5,0,0,0"
+                                      Content="{Binding Name}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+        
+        <Button Grid.Row="1" Content="Save OSD" 
+                Command="{Binding SaveOSDCommand}"/>    
+    </Grid>
+</UserControl>

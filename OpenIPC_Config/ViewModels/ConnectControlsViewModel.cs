@@ -278,11 +278,31 @@ public partial class ConnectControlsViewModel : ViewModelBase
                 processRadxaFiles();
                 UpdateUIMessage("Processing Radxa...done");
             }
+            else if (_deviceConfig.DeviceType == DeviceType.NVR)
+            {
+                UpdateUIMessage("Processing NVR...");
+                processNvrFiles();
+                UpdateUIMessage("Processing Radxa...done");
+            }
         }
 
         UpdateUIMessage("Connected");
     }
 
+    private async void processNvrFiles()
+    {
+        try
+        {
+            var vdec =
+                await SshClientService.DownloadFileAsync(_deviceConfig, Models.OpenIPC.WifiBroadcastFileLoc);
+
+        }
+        catch (Exception e)
+        {
+            Log.Error(e.Message);
+            throw;
+        }
+    }
     private async void processRadxaFiles()
     {
         try

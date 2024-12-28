@@ -12,9 +12,11 @@ namespace OpenIPC_Config.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
 
+    public bool IsMobile { get; }
+    
     [ObservableProperty]
     private bool isVRXEnabled;
-
+    
     [ObservableProperty]
     private DeviceConfig _deviceConfig;
 
@@ -36,6 +38,8 @@ public partial class MainViewModel : ViewModelBase
         IEventSubscriptionService eventSubscriptionService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
+        
+        IsMobile = App.IsMobile;
         
         // Subscribe to device type change events
         EventSubscriptionService.Subscribe<DeviceTypeChangeEvent, DeviceType>(

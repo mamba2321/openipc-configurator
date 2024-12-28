@@ -24,6 +24,9 @@ public class OpenIPC
     public const string WifiBroadcastFileLoc = "/etc/wifibroadcast.cfg";
     public const string WifiBroadcastModProbeFileLoc = "/etc/modprobe.d/wfb.conf";
     public const string ScreenModeFileLoc = "/config/scripts/screen-mode";
+    
+    // NVR Files
+    public const string VdecConfFileLoc = "/etc/vdec.conf";
 
 
     public const string KeyMD5Sum = "24767056dc165963fe6db7794aee12cd";

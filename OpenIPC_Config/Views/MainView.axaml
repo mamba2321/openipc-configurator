@@ -48,7 +48,7 @@
             </TabItem>
 
             <TabItem Header="Camera" IsVisible="{Binding !IsVRXEnabled}">
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" >
                     <views:CameraSettingsView />
                 </ScrollViewer>
             </TabItem>
@@ -57,6 +57,14 @@
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <views:VRXTabView />
                 </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="OSD" IsVisible="{Binding IsVRXEnabled}">
+                <Viewbox Stretch="Uniform">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" >
+                    <views:OsdTabView />
+                </ScrollViewer>
+                </Viewbox>
             </TabItem>
 
             <TabItem Header="Setup">

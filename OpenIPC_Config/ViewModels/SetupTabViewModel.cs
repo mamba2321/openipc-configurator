@@ -46,6 +46,8 @@ public partial class SetupTabViewModel : ViewModelBase
     [ObservableProperty] private string _scanMessages;
     [ObservableProperty] private string _selectedFwVersion;
     [ObservableProperty] private string _selectedSensor;
+    [ObservableProperty] private bool _isTunnelEnabled; 
+    [ObservableProperty] private bool _isTunnelDisabled; 
     
     private ICommand _firmwareUpdateCommand;
     private ICommand _generateKeysCommand;

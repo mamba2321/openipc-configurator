@@ -24,6 +24,8 @@ namespace OpenIPC_Config;
 public class App : Application
 {
     public static IServiceProvider ServiceProvider { get; private set; }
+    
+    public static bool IsMobile { get; private set; }
 
     public override void Initialize()
     {
@@ -32,6 +34,9 @@ public class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Determine if the app is running on a mobile platform 
+        IsMobile = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
+        
         // Configure and build the DI container
         var serviceCollection = new ServiceCollection();
         ConfigureServices(serviceCollection);
@@ -79,7 +84,9 @@ public class App : Application
         services.AddTransient<TelemetryTabViewModel>();
         services.AddTransient<VRXTabViewModel>();
         services.AddTransient<WfbGSTabViewModel>();
-        services.AddTransient<WfbTabViewModel>();        
+        services.AddTransient<WfbTabViewModel>();
+        services.AddTransient<OsdTabViewModel>();
+        
 
         // Register Views
         services.AddTransient<MainWindow>();
@@ -93,6 +100,7 @@ public class App : Application
         services.AddTransient<VRXTabView>();
         services.AddTransient<WfbGSTabView>();
         services.AddTransient<WfbTabView>();
+        services.AddTransient<OsdTabView>();
 
     }
 
