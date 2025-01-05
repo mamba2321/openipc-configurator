@@ -32,18 +32,41 @@ public class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
+    private void InitializeLogger(string configPath)
+    {
+        
+        // Load configuration
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile(configPath, optional: false, reloadOnChange: true)
+            .Build();
+
+        // Initialize logger with EventAggregatorSink
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration)
+            .WriteTo.Sink(new EventAggregatorSink(ServiceProvider.GetRequiredService<IEventAggregator>()))
+            .CreateLogger();
+
+        Log.Information("**********************************************************************************************");
+        Log.Information($"Starting up log for OpenIPC Configurator v{VersionHelper.GetAppVersion()}");
+        Log.Information($"Using appsettings.json from {configPath}");
+    }
+    
     public override void OnFrameworkInitializationCompleted()
     {
         // Determine if the app is running on a mobile platform 
         IsMobile = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
         
+        var appSetting = CreateAppSettings();
+        
         // Configure and build the DI container
         var serviceCollection = new ServiceCollection();
         ConfigureServices(serviceCollection);
         ServiceProvider = serviceCollection.BuildServiceProvider();
-
-        CreateAppSettings();
-
+        
+        // Initialize logger after ServiceProvider is available
+        InitializeLogger(appSetting);
+        
+        
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Remove Avalonia's default data validation plugin to avoid conflicts
@@ -94,7 +117,7 @@ public class App : Application
         return configPath;
     }
 
-    private void CreateAppSettings()
+    private string CreateAppSettings()
     {
         var configPath = GetConfigPath();
 
@@ -105,6 +128,9 @@ public class App : Application
             File.WriteAllText(configPath, defaultSettings.ToString());
             Log.Information($"Default appsettings.json created at {configPath}");
         }
+
+        return configPath;
+
     }
 
 
@@ -117,17 +143,30 @@ public class App : Application
         services.AddSingleton<IMessageBoxService, MessageBoxService>();
         services.AddSingleton<IYamlConfigService, YamlConfigService>();
         services.AddSingleton<ILogger>(sp => Log.Logger);
-
+        
         // Load the configuration
         var configPath = GetConfigPath();
+        
         var configuration = new ConfigurationBuilder()
             .AddJsonFile(configPath, optional: false, reloadOnChange: true)
             .Build();
+        
+        Log.Information(
+            "**********************************************************************************************");
+        Log.Information($"Starting up log for OpenIPC Configurator v{VersionHelper.GetAppVersion()}");
+        Log.Information($"Using appsettings.json from {configPath}");
 
         // Register IConfiguration
         services.AddSingleton<IConfiguration>(configuration);
         services.AddTransient<DeviceConfigValidator>();
         
+        RegisterViewModels(services);
+
+        RegisterViews(services);
+    }
+
+    private static void RegisterViewModels(IServiceCollection services)
+    {
         // Register ViewModels
         services.AddTransient<MainViewModel>();
 
@@ -141,8 +180,10 @@ public class App : Application
         services.AddTransient<WfbGSTabViewModel>();
         services.AddTransient<WfbTabViewModel>();
         services.AddTransient<OsdTabViewModel>();
-        
+    }
 
+    private static void RegisterViews(IServiceCollection services)
+    {
         // Register Views
         services.AddTransient<MainWindow>();
         services.AddTransient<MainView>();
@@ -156,10 +197,9 @@ public class App : Application
         services.AddTransient<WfbGSTabView>();
         services.AddTransient<WfbTabView>();
         services.AddTransient<OsdTabView>();
-
     }
 
-    
+
     private JObject createDefaultAppSettings()
     {
         // Create default settings

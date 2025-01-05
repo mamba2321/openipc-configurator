@@ -71,6 +71,7 @@ public partial class MainViewModel : ViewModelBase
 
         // Update the selected tab based on the device type
         SelectedTab = IsVRXEnabled ? "WFB-GS" : "WFB";
+        
 
         // Notify the view of tab changes
         EventSubscriptionService.Publish<TabSelectionChangeEvent, string>(SelectedTab);

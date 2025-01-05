@@ -10,6 +10,7 @@ public static class DeviceCommands
     public const string GsWfbStopCommand = "systemctl stop openipc.service";
 
     public const string MajesticRestartCommand = "killall -1 majestic";
+    public const string RestartVdecCommand = "/etc/init.d/S98vdec stop; sleep 1;/etc/init.d/S98vdec start";
 
     public const string TelemetryStartCommand = "telemetry start";
     public const string TelemetryStopCommand = "telemetry stop";

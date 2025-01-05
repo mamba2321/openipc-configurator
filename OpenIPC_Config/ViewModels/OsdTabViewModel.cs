@@ -1,6 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OpenIPC_Config.Events;
+using OpenIPC_Config.Models;
+using OpenIPC_Config.Parsers;
 using OpenIPC_Config.Services;
 using Serilog;
 
@@ -11,6 +15,9 @@ public partial class OsdTabViewModel : ViewModelBase
     public ObservableCollection<double> VerticalGridLines { get; } = new();
     public ObservableCollection<double> HorizontalGridLines { get; } = new();
 
+    private VdecConfParser _vdecConfParser;
+    
+    [ObservableProperty] private bool _canConnect;
     public ICommand SaveOSDCommand { get; private set; }
     
     public OsdTabViewModel(ILogger logger,
@@ -18,6 +25,9 @@ public partial class OsdTabViewModel : ViewModelBase
         IEventSubscriptionService eventSubscriptionService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
+        
+        EventSubscriptionService.Subscribe<NvrContentUpdateChangeEvent, NvrContentUpdatedMessage>(OnNvrContentUpdatedMessage );
+        EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(OnAppMessageEvent);
         
         SaveOSDCommand = new RelayCommand(() => SaveOSD());
         
@@ -29,7 +39,31 @@ public partial class OsdTabViewModel : ViewModelBase
 
         createGridLines();
     }
+
+    private void OnAppMessageEvent(AppMessage appMessage)
+    {
+        if(appMessage != null)
+        {
+            // controls buttons
+            CanConnect = appMessage.CanConnect;
+        }
+        
+        
+    }
     
+    private void OnNvrContentUpdatedMessage(NvrContentUpdatedMessage nvrContentUpdatedMessage)
+    {
+            if (!string.IsNullOrEmpty(nvrContentUpdatedMessage.VdecContent))
+            {
+                _vdecConfParser = VdecConfParser.ReadConfig(nvrContentUpdatedMessage.VdecContent);
+                //vdecConfig.ApplyToOverlayItems(OverlayItems);
+                OsdElementsParser.Parse(nvrContentUpdatedMessage.VdecContent, OverlayItems);
+                
+            }
+
+            
+        
+    }
     private void createGridLines()
     {
         // Populate grid lines at regular intervals
@@ -46,12 +80,19 @@ public partial class OsdTabViewModel : ViewModelBase
 
     private async void SaveOSD()
     {
+        var overlayElements = OsdElementsParser.GenerateOsdElements(OverlayItems); // Generate osd_elements string()
         
+        _vdecConfParser.OsdElements = overlayElements;
+        var vdecConfig = _vdecConfParser.GenerateConfig();
+        
+        SshClientService.UploadFileStringAsync(DeviceConfig.Instance, Models.OpenIPC.VdecConfFileLoc, vdecConfig); // Upload vdec_conf()
+        SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RestartVdecCommand); // Reboot()
+
     }
 
     public ObservableCollection<OverlayItem> OverlayItems { get; } = new()
     {
-        new OverlayItem { Name = "ALT", DisplayValue = "ALT",PositionX = 511/2.5, PositionY = 193, IsVisible = true },
+        new OverlayItem { Name = "ALT", DisplayValue = "ALT",PositionX = 511, PositionY = 193, IsVisible = true },
         new OverlayItem { Name = "SPD", DisplayValue="SPD",PositionX = 114, PositionY = 195, IsVisible = true },
         new OverlayItem { Name = "VSPD", DisplayValue = "VSPD",PositionX = 511, PositionY = 233, IsVisible = true },
         new OverlayItem { Name = "BAT", DisplayValue="BAT", PositionX = 16, PositionY = 433, IsVisible = true },
@@ -69,6 +110,7 @@ public partial class OsdTabViewModel : ViewModelBase
         new OverlayItem { Name = "Bitrate", DisplayValue = "Bitrate",PositionX = 160, PositionY = 8, IsVisible = true },
         
         new OverlayItem { Name = "TIME", DisplayValue = "TIME",PositionX = 643, PositionY = 310, IsVisible = true },
-        new OverlayItem { Name = "HORIZON", DisplayValue = "---====== * =======---",PositionX = 200, PositionY = 227, IsVisible = true },
+        new OverlayItem { Name = "HORIZON", DisplayValue = "-----------------------HORIZON -----------------------",PositionX = 206, PositionY = 194, IsVisible = true },
+        new OverlayItem { Name = "TEMP", DisplayValue = "TEMP",PositionX = 200, PositionY = 21, IsVisible = true },
     };
 }

@@ -22,13 +22,15 @@ public partial class MainView : UserControl
 
         if (!Design.IsDesignMode)
         {
-            // Resolve MainViewModel from the DI container
-            DataContext = App.ServiceProvider.GetRequiredService<MainViewModel>();
-
             // Subscribe to TabSelectionChangeEvent
             var _eventSubscriptionService = App.ServiceProvider.GetRequiredService<IEventSubscriptionService>();
             
             _eventSubscriptionService.Subscribe<TabSelectionChangeEvent, string>(OnTabSelectionChanged);
+            
+            // Resolve MainViewModel from the DI container
+            DataContext = App.ServiceProvider.GetRequiredService<MainViewModel>();
+
+            
         }
         else
         {

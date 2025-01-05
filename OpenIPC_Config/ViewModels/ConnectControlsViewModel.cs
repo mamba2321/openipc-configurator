@@ -18,6 +18,7 @@ using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using OpenIPC_Config.Events;
 using OpenIPC_Config.Models;
+using OpenIPC_Config.Parsers;
 using OpenIPC_Config.Services;
 using Prism.Events;
 using Serilog;
@@ -308,10 +309,30 @@ public partial class ConnectControlsViewModel : ViewModelBase
 
     private async void processNvrFiles()
     {
+        await HandleVdec();
+
+        await HandleTelemetry();
+        
+        await HandleNvrWfb();
+
+    }
+
+    private async Task HandleNvrWfb()
+    {
         try
         {
-            var vdec =
-                await SshClientService.DownloadFileAsync(_deviceConfig, Models.OpenIPC.WifiBroadcastFileLoc);
+            // download file wfb.conf
+            var wfbConfContent = await SshClientService.DownloadFileAsync(_deviceConfig, Models.OpenIPC.WfbConfFileLoc);
+
+            if (!string.IsNullOrEmpty(wfbConfContent))
+            {
+                var nvrContentUpdatedMessage = new NvrContentUpdatedMessage();
+                nvrContentUpdatedMessage.WfbConfContent = wfbConfContent;
+
+                EventSubscriptionService.Publish<NvrContentUpdateChangeEvent, 
+                    NvrContentUpdatedMessage>(nvrContentUpdatedMessage );
+                
+            }
 
         }
         catch (Exception e)
@@ -320,6 +341,57 @@ public partial class ConnectControlsViewModel : ViewModelBase
             throw;
         }
     }
+    
+    private async Task HandleTelemetry()
+    {
+        try
+        {
+            var telemetryFileString =
+                await SshClientService.DownloadFileAsync(_deviceConfig, Models.OpenIPC.TelemetryConfFileLoc);
+
+            if (!string.IsNullOrEmpty(telemetryFileString))
+            {
+                var nvrContentUpdatedMessage = new NvrContentUpdatedMessage();
+                nvrContentUpdatedMessage.TelemetryConfContent = telemetryFileString;
+
+                EventSubscriptionService.Publish<NvrContentUpdateChangeEvent, 
+                    NvrContentUpdatedMessage>(nvrContentUpdatedMessage );
+                
+            }
+
+        }
+        catch (Exception e)
+        {
+            Log.Error(e.Message);
+            throw;
+        }
+    }
+    
+    private async Task HandleVdec()
+    {
+        UpdateUIMessage("Downloading vdec.conf" );
+        try
+        {
+            var vdecFileString =
+                await SshClientService.DownloadFileAsync(_deviceConfig, Models.OpenIPC.VdecConfFileLoc);
+
+            if (!string.IsNullOrEmpty(vdecFileString))
+            {
+                var nvrContentUpdatedMessage = new NvrContentUpdatedMessage();
+                nvrContentUpdatedMessage.VdecContent = vdecFileString;
+
+                EventSubscriptionService.Publish<NvrContentUpdateChangeEvent, 
+                    NvrContentUpdatedMessage>(nvrContentUpdatedMessage );
+            }
+
+        }
+        catch (Exception e)
+        {
+            Log.Error(e.Message);
+            throw;
+        }
+    }
+
     private async void processRadxaFiles()
     {
         try

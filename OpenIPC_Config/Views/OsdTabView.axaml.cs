@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using OpenIPC_Config.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace OpenIPC_Config.Views;
 
@@ -63,13 +64,20 @@ public partial class OsdTabView : UserControl
     {
         if (sender is Border border && border.DataContext is OverlayItem item && item.IsDragging)
         {
+            //TODO: should HORIZON move around? Fow now it is simple enable/disable
+            if (((OpenIPC_Config.ViewModels.OverlayItem)((Avalonia.Controls.Border)sender).DataContext).Name ==
+                "HORIZON")
+                return;
+                
             var currentPointerPosition = e.GetPosition(this);
             var deltaX = currentPointerPosition.X - _lastPointerPosition.X;
             var deltaY = currentPointerPosition.Y - _lastPointerPosition.Y;
 
             item.PositionX += deltaX;
             item.PositionY += deltaY;
-
+            
+            Log.Verbose($"X: {item.PositionX}, Y: {item.PositionY}");
+            
             _lastPointerPosition = currentPointerPosition;
 
             // Snap to grid
@@ -78,7 +86,7 @@ public partial class OsdTabView : UserControl
             //UpdateAlignmentHelpers(item.PositionX, item.PositionY);
             UpdateAlignmentHelpers(item.PositionX, item.PositionY, border.Bounds.Width, border.Bounds.Height);
 
-            CheckOverlaps(item); // Check for overlaps
+            
         }
     }
 
@@ -165,13 +173,6 @@ public partial class OsdTabView : UserControl
         }
     }
 
-    private bool AreItemsOverlapping(OverlayItem item1, OverlayItem item2, double itemWidth, double itemHeight)
-    {
-        var rect1 = new Rect(item1.PositionX, item1.PositionY, itemWidth, itemHeight);
-        var rect2 = new Rect(item2.PositionX, item2.PositionY, itemWidth, itemHeight);
-
-        return rect1.Intersects(rect2);
-    }
 
     private void SnapToGrid(OverlayItem item)
     {
@@ -179,25 +180,5 @@ public partial class OsdTabView : UserControl
         item.PositionY = Math.Round(item.PositionY / GridSize) * GridSize;
     }
     
-    private void CheckOverlaps(OverlayItem currentItem)
-    {
-        foreach (var child in OsdCanvas.Children)
-        {
-            if (child is Border border && border.DataContext is OverlayItem otherItem && otherItem != currentItem)
-            {
-                var itemWidth = border.Bounds.Width;
-                var itemHeight = border.Bounds.Height;
-
-                if (AreItemsOverlapping(currentItem, otherItem, itemWidth, itemHeight))
-                {
-                    Console.Out.WriteLine("Items are overlapping!");
-                    border.Background = Brushes.Red;
-                }
-                else
-                {
-                    border.Background = Brushes.Transparent;
-                }
-            }
-        }
-    }
+    
 }

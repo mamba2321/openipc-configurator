@@ -305,7 +305,8 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
         };
 
         Codec = new ObservableCollection<string> { "h264", "h265" };
-        ObservableCollection<string> Bitrate = new ObservableCollection<string>
+        
+        Bitrate = new ObservableCollection<string>
         {
             "1024", "2048", "3072", "4096", "5120", "6144", "7168", "8192", 
             "9216", "10240", "11264", "12288", "13312", "14336", "15360", 

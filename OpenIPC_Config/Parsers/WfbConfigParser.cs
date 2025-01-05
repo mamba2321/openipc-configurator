@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Serilog;
 
-namespace OpenIPC_Config.Services;
+namespace OpenIPC_Config.Parsers;
 
 public class WfbConfigParser
 {

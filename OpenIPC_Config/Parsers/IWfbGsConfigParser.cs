@@ -1,4 +1,4 @@
-namespace OpenIPC_Config.Services;
+namespace OpenIPC_Config.Parsers;
 
 public interface IWfbGsConfigParser
 {

@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DynamicData.Binding;
 using MsBox.Avalonia;
 using OpenIPC_Config.Events;
 using OpenIPC_Config.Models;
+using OpenIPC_Config.Parsers;
 using OpenIPC_Config.Services;
 using Prism.Events;
 using Serilog;
@@ -15,6 +19,10 @@ namespace OpenIPC_Config.ViewModels;
 
 public partial class WfbGSTabViewModel : ViewModelBase
 {
+    private readonly Dictionary<int, string> _24FrequencyMapping = FrequencyMappings.Frequency24GHz;
+    private readonly Dictionary<int, string> _58FrequencyMapping = FrequencyMappings.Frequency58GHz;
+
+    
     private readonly Dictionary<int, string> _frequencyMapping = new()
     {
         { 1, "2412 MHz [1]" },
@@ -61,22 +69,56 @@ public partial class WfbGSTabViewModel : ViewModelBase
         { 177, "5885 MHz [177]" }
     };
 
+    #region Properies
 
+    [ObservableProperty] private int _selectedChannel;
+
+    [ObservableProperty] private int _selectedPower24GHz;
+    
+    [ObservableProperty] private int _selectedBandwidth;
+
+    [ObservableProperty] private int _selectedPower;
+
+    
+    [ObservableProperty] private ObservableCollection<string> _frequencies58GHz;
+
+    [ObservableProperty] private ObservableCollection<string> _frequencies24GHz;
+
+    [ObservableProperty] private ObservableCollection<int> _power58GHz;
+
+    [ObservableProperty] private ObservableCollection<int> _power24GHz;
+    
+    [ObservableProperty] private DeviceConfig _deviceConfig;
+    
     [ObservableProperty] private bool _canConnect;
 
     [ObservableProperty] private ObservableCollection<string> _frequencies;
     [ObservableProperty] private string _gsMavlink;
     [ObservableProperty] private string _gsVideo;
     [ObservableProperty] private ObservableCollection<int> _power;
+    [ObservableProperty] private string _wifiRegion;
+    [ObservableProperty] private bool _isNvrDevice;
+    [ObservableProperty] private bool _isRadxaDevice;
+    [ObservableProperty] private string _selectedFrequency24String;
+    [ObservableProperty] private string _selectedFrequency58String;
+    
+    #endregion 
+    
+    partial void OnSelectedFrequency24StringChanged(string value)
+    {
+        if (!string.IsNullOrEmpty(value)) HandleFrequencyChange(value, _24FrequencyMapping);
+    }
 
-    [ObservableProperty] private string _selectedFrequencyString;
-    [ObservableProperty] private int _selectedPower;
+    partial void OnSelectedFrequency58StringChanged(string value)
+    {
+        if (!string.IsNullOrEmpty(value)) HandleFrequencyChange(value, _58FrequencyMapping);
+    }
 
     private readonly WfbGsConfigParser _wfbGsConfigParser;
     private readonly WifiConfigParser _wifiConfigParser;
+    private WfbConfParser _wfbConfParser;
 
-    [ObservableProperty] private string _wifiRegion;
-
+    
     public WfbGSTabViewModel(ILogger logger,
         ISshClientService sshClientService,
         IEventSubscriptionService eventSubscriptionService)
@@ -85,8 +127,11 @@ public partial class WfbGSTabViewModel : ViewModelBase
         _wfbGsConfigParser = new WfbGsConfigParser();
         _wifiConfigParser = new WifiConfigParser();
 
+        //DeviceConfig = DeviceConfig.Instance;
         InitializeCollections();
         
+        EventSubscriptionService.Subscribe<DeviceTypeChangeEvent, DeviceType>(OnDeviceTypeChangeEvent);
+        EventSubscriptionService.Subscribe<NvrContentUpdateChangeEvent, NvrContentUpdatedMessage>(OnNvrContentUpdatedMessage);
         EventSubscriptionService.Subscribe<RadxaContentUpdateChangeEvent, RadxaContentUpdatedMessage>(OnRadxaContentUpdateChange);
         EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(OnAppMessage);
         
@@ -97,16 +142,9 @@ public partial class WfbGSTabViewModel : ViewModelBase
     {
         if (appMessage.CanConnect) CanConnect = appMessage.CanConnect;
         //Log.Information($"CanConnect {CanConnect.ToString()}");
-    }
 
-    public int GetChannelNumber(string frequencyString)
-    {
-        foreach (var kvp in _frequencyMapping)
-            if (kvp.Value.Equals(frequencyString, StringComparison.OrdinalIgnoreCase))
-                return kvp.Key;
+        DeviceConfig = appMessage.DeviceConfig;
 
-        Log.Warning($"Frequency string '{frequencyString}' not found in 5.8 GHz frequency mapping.");
-        return -1; // Return -1 or another sentinel value to indicate not found
     }
 
     /// <summary>
@@ -120,15 +158,43 @@ public partial class WfbGSTabViewModel : ViewModelBase
         //await MessageBoxManager.GetMessageBoxStandard("Warning", "Not implemented yet", ButtonEnum.Ok).ShowAsync();
         Log.Information("Restart WFB button clicked");
 
-        // /etc/wifibroadcast.cfg
-        await UpdateWifiBroadcastCfg();
+        var newFrequency58 = SelectedFrequency58String;
+        var newFrequency24 = SelectedFrequency24String;
 
-        // /etc/modprobe.d/wfb.conf
-        await UpdateModprobeWfbConf();
+        var newPower58 = SelectedPower;
+        var newPower24 = SelectedPower24GHz;
+        var newBandwidth = SelectedBandwidth;
+        var newChannel = SelectedChannel;
+        var newWifiRegion = WifiRegion;
+         
+        
+        if (IsRadxaDevice)
+        {
+            // /etc/wifibroadcast.cfg
+            await UpdateWifiBroadcastCfg();
 
+            // /etc/modprobe.d/wfb.conf
+            await UpdateModprobeWfbConf();
+    
+        }
+
+        if (IsNvrDevice)
+        {
+            _wfbConfParser.Channel = newChannel;
+            _wfbConfParser.Region = newWifiRegion;
+            var updatedWfbString = _wfbConfParser.GenerateConfig();
+            SshClientService.UploadFileStringAsync(DeviceConfig.Instance, Models.OpenIPC.WfbConfFileLoc, updatedWfbString); // Upload wfb_conf()
+
+
+            // Update WfbConfContent with the new values
+
+        }
+        
         await MessageBoxManager.GetMessageBoxStandard("Success", "Saved!").ShowAsync();
     }
 
+    
+    
     private async Task UpdateModprobeWfbConf()
     {
         try
@@ -154,7 +220,31 @@ public partial class WfbGSTabViewModel : ViewModelBase
             throw;
         }
     }
+    
+    
 
+    private void HandleFrequencyChange(string newValue, Dictionary<int, string> frequencyMapping)
+    {
+        // Reset the other frequency collection to its first value
+        if (frequencyMapping == _24FrequencyMapping)
+        {
+            SelectedFrequency58String = Frequencies58GHz.FirstOrDefault();
+            SelectedPower = Power58GHz.FirstOrDefault();
+        }
+        else if (frequencyMapping == _58FrequencyMapping)
+        {
+            SelectedFrequency24String = Frequencies24GHz.FirstOrDefault();
+            SelectedPower24GHz = Power24GHz.FirstOrDefault();
+        }
+
+        // Extract the channel number using a regular expression
+        var match = Regex.Match(newValue, @"\[(\d+)\]");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out var channel))
+            SelectedChannel = channel;
+        else
+            SelectedChannel = -1; // Default value if parsing fails
+    }
+    
     private async Task UpdateWifiBroadcastCfg()
     {
         // update /etc/wifibroadcast.cfg
@@ -162,7 +252,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
         {
             // Update the parser's properties based on user input
 
-            _wifiConfigParser.WifiChannel = GetChannelNumber(SelectedFrequencyString);
+            _wifiConfigParser.WifiChannel = SelectedChannel;
             _wifiConfigParser.WifiRegion = WifiRegion;
             _wifiConfigParser.GsMavlinkPeer = GsMavlink;
             _wifiConfigParser.GsVideoPeer = GsVideo;
@@ -191,10 +281,69 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
     private void InitializeCollections()
     {
-        Frequencies = new ObservableCollection<string>(_frequencyMapping.Values);
-        Power = new ObservableCollection<int> { 1, 5, 10, 15, 20, 25, 30 };
+        Frequencies58GHz = new ObservableCollectionExtended<string>(_58FrequencyMapping.Values);
+        Frequencies24GHz = new ObservableCollectionExtended<string>(_24FrequencyMapping.Values);
+        Power58GHz = new ObservableCollectionExtended<int> { 1, 5, 10, 15, 20, 25, 30 };
+        Power24GHz = new ObservableCollectionExtended<int> { 1, 20, 25, 30, 35, 40 };
     }
 
+    private  void OnDeviceTypeChangeEvent(DeviceType deviceType)
+    {
+        IsRadxaDevice = (deviceType == DeviceType.Radxa);
+        IsNvrDevice = (deviceType == DeviceType.NVR);
+    }
+    
+    /// <summary>
+    /// Handles the frequency key input event.
+    /// </summary>
+    /// <param name="value">The input value representing the frequency key.</param>
+    /// <remarks>
+    /// This method is called when the frequency key input event is triggered, and it is responsible for parsing the input value and updating the corresponding frequency settings.
+    /// </remarks>
+    private void HandleFrequencyKey(string value)
+    {
+        if (int.TryParse(value, out var frequency))
+        {
+            SelectedFrequency58String = _58FrequencyMapping.ContainsKey(frequency)
+                ? _58FrequencyMapping[frequency]
+                : SelectedFrequency58String;
+
+            SelectedFrequency24String = _24FrequencyMapping.ContainsKey(frequency)
+                ? _24FrequencyMapping[frequency]
+                : SelectedFrequency24String;
+        }
+    }
+    
+    
+    /// <summary>
+    /// Handles the NVR content updated message event.
+    /// </summary>
+    /// <param name="nvrContentUpdatedMessage">The NVR content updated message containing the updated configuration data.</param>
+    /// <remarks>
+    /// This method is called when the NVR content is updated, and it is responsible for parsing the updated configuration data and updating the corresponding properties in the view model.
+    /// </remarks>
+    private void OnNvrContentUpdatedMessage(NvrContentUpdatedMessage nvrContentUpdatedMessage)
+    {
+        var wfbConfContent = nvrContentUpdatedMessage.WfbConfContent;
+        if (!string.IsNullOrEmpty(wfbConfContent))
+        {
+            _wfbConfParser = WfbConfParser.ReadConfig(wfbConfContent); 
+
+            var channel = _wfbConfParser.Channel;
+            
+            //if (_frequencyMapping.TryGetValue(channel, out frequencyString)) SelectedFrequencyString = frequencyString;
+            HandleFrequencyKey(channel.ToString());
+            
+            var power = _wfbConfParser.DriverTxPowerOverride;
+            SelectedPower = power;
+            
+            var region = _wfbConfParser.Region;
+            if (!string.IsNullOrEmpty(region)) WifiRegion = region;
+
+
+        }
+    }
+    
     private void OnRadxaContentUpdateChange(RadxaContentUpdatedMessage radxaContentUpdatedMessage)
     {
         var wifiBroadcastContent = radxaContentUpdatedMessage.WifiBroadcastContent;
@@ -206,8 +355,8 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
             var channel = _wifiConfigParser.WifiChannel;
 
-            string frequencyString;
-            if (_frequencyMapping.TryGetValue(channel, out frequencyString)) SelectedFrequencyString = frequencyString;
+            // string frequencyString;
+            // if (_frequencyMapping.TryGetValue(channel, out frequencyString)) SelectedFrequencyString = frequencyString;
 
             var wifiRegion = _wifiConfigParser.WifiRegion;
             if (!string.IsNullOrEmpty(wifiRegion)) WifiRegion = _wifiConfigParser.WifiRegion;

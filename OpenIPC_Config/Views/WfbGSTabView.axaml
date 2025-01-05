@@ -3,9 +3,16 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OpenIPC_Config.ViewModels"
+             xmlns:converters="clr-namespace:OpenIPC_Config.Converters"
+             xmlns:models="clr-namespace:OpenIPC_Config.Models"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="OpenIPC_Config.Views.WfbGSTabView"
              x:DataType="vm:WfbGSTabViewModel">
+    
+    <UserControl.Resources>
+        <converters:DeviceTypeToBoolConverter x:Key="DeviceTypeToBoolConverter" />
+    </UserControl.Resources>
+    
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -22,31 +29,63 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Label Grid.Column="0" Grid.Row="0" Content="Frequency" />
-        <Label Grid.Column="0" Grid.Row="1" Content="TX Power" />
-        <Label Grid.Column="0" Grid.Row="2" Content="Wifi Region" />
-        <Label Grid.Column="0" Grid.Row="3" Content="gs_mavlink" />
-        <Label Grid.Column="0" Grid.Row="4" Content="gs_video" />
+        <Label Grid.Column="0" Grid.Row="0" Content="5.8GHz Frequency"  />
+        <Label Grid.Column="0" Grid.Row="1" Content="5.8GHz TX Power"  />
+        <Label Grid.Column="0" Grid.Row="2" Content="2.4GHz Frequency"  />
+        <Label Grid.Column="0" Grid.Row="3" Content="2.4GHz TX Power"  />
+        
+        <!-- <Label Grid.Column="0" Grid.Row="0" Content="Frequency" /> -->
+        <!-- <Label Grid.Column="0" Grid.Row="1" Content="TX Power" /> -->
+        <!-- -->
+        <Label Grid.Column="0" Grid.Row="4" Content="Wifi Region" />
+        
+        <Label Grid.Column="0" Grid.Row="5" Content="gs_mavlink" IsVisible="{Binding IsRadxaDevice}" />
+        <Label Grid.Column="0" Grid.Row="6" Content="gs_video" IsVisible="{Binding IsRadxaDevice}" />
+        
+        
 
         <ComboBox Grid.Column="1" Grid.Row="0"
-                  ToolTip.Tip="Select Frequency"
-                  ItemsSource="{Binding Frequencies}"
-                  SelectedItem="{Binding SelectedFrequencyString, Mode=TwoWay}" />
+                  ToolTip.Tip="Select 5.8GHz Frequency"
+                  ItemsSource="{Binding Frequencies58GHz}"
+                  SelectedItem="{Binding SelectedFrequency58String, Mode=TwoWay}" />
 
 
-        <ComboBox Grid.Column="1" Grid.Row="1" ToolTip.Tip="Select TX Power"
-                  ItemsSource="{Binding Power}"
+        <ComboBox Grid.Column="1" Grid.Row="2" ToolTip.Tip="Select 2.4GHz Frequency"
+                  ItemsSource="{Binding Frequencies24GHz}"
+                  SelectedItem="{Binding SelectedFrequency24String, Mode=TwoWay}" />
+
+        <ComboBox Grid.Column="1" Grid.Row="1" ToolTip.Tip="Select 5.8GHz TX Power"
+                  ItemsSource="{Binding Power58GHz}"
                   SelectedItem="{Binding SelectedPower, Mode=TwoWay}" />
 
 
-        <TextBox Grid.Row="2" Grid.Column="1"
-                 Text="{Binding WifiRegion, Mode=TwoWay}" />
+        <ComboBox Grid.Column="1" Grid.Row="3" ToolTip.Tip="Select 2.4GHz TX Power"
+                  ItemsSource="{Binding Power24GHz}"
+                  SelectedItem="{Binding SelectedPower24GHz, Mode=TwoWay}" />
+        
+
+        <!-- <ComboBox Grid.Column="1" Grid.Row="0" -->
+        <!--           ToolTip.Tip="Select Frequency" -->
+        <!--           ItemsSource="{Binding Frequencies}" -->
+        <!--           SelectedItem="{Binding SelectedFrequencyString, Mode=TwoWay}" /> -->
+        <!-- -->
+        <!-- -->
+        <!-- <ComboBox Grid.Column="1" Grid.Row="1" ToolTip.Tip="Select TX Power" -->
+        <!--           ItemsSource="{Binding Power}" -->
+        <!--           SelectedItem="{Binding SelectedPower, Mode=TwoWay}" /> -->
+
+
+        <TextBox Grid.Row="4" Grid.Column="1"
+                 Text="{Binding WifiRegion, Mode=TwoWay}"
+                  />
 
         <TextBox Grid.Row="3" Grid.Column="1"
-                 Text="{Binding GsMavlink, Mode=TwoWay}" />
+                 Text="{Binding GsMavlink, Mode=TwoWay}" 
+                 IsVisible="{Binding IsRadxaDevice}" />
         
         <TextBox Grid.Row="4" Grid.Column="1"
-                 Text="{Binding GsVideo, Mode=TwoWay}" />
+                 Text="{Binding GsVideo, Mode=TwoWay}"
+                 IsVisible="{Binding IsRadxaDevice}" />
 
         <Separator Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="5" />
 
