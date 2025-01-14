@@ -1,41 +1,74 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System;
+using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
 using OpenIPC_Config.Events;
 using OpenIPC_Config.Models;
-using OpenIPC_Config.Views;
+using OpenIPC_Config.Services;
 using Prism.Events;
+using Serilog;
 
 namespace OpenIPC_Config.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    private readonly IEventAggregator _eventAggregator;
 
-    [ObservableProperty] private bool isVRXEnabled;
+    [ObservableProperty]
+    private bool isVRXEnabled;
 
-    public MainViewModel()
+    [ObservableProperty]
+    private DeviceConfig _deviceConfig;
+
+    [ObservableProperty]
+    private string selectedTab;
+    
+    public WfbTabViewModel WfbTabViewModel { get; }
+    public WfbGSTabViewModel WfbGSTabViewModel { get; }
+    public TelemetryTabViewModel TelemetryTabViewModel { get; }
+    public CameraSettingsTabViewModel CameraSettingsTabViewModel { get; }
+    public VRXTabViewModel VRXTabViewModel { get; }
+    public SetupTabViewModel SetupTabViewModel { get; }
+    public ConnectControlsViewModel ConnectControlsViewModel { get; }
+    public LogViewerViewModel LogViewerViewModel { get; }
+    public StatusBarViewModel StatusBarViewModel { get; }
+
+    public MainViewModel(ILogger logger,
+        ISshClientService sshClientService,
+        IEventSubscriptionService eventSubscriptionService)
+        : base(logger, sshClientService, eventSubscriptionService)
     {
+        
+        // Subscribe to device type change events
+        EventSubscriptionService.Subscribe<DeviceTypeChangeEvent, DeviceType>(
+            OnDeviceTypeChangeEvent);
+        
         IsVRXEnabled = false;
-        _eventAggregator = EventAggregator.Current;
 
-        _eventAggregator.GetEvent<DeviceTypeChangeEvent>().Subscribe(onDeviceTypeChangeEvent);
+        LoadSettings();
+
     }
 
-    //[ObservableProperty] private string _greeting = "Welcome to Avalonia!";
-
-    // This method is automatically called when `isVRXEnabled` changes
-    partial void OnIsVRXEnabledChanged(bool value)
+    private void LoadSettings()
     {
-        if (true) MainView.TabControlInstance.InvalidateVisual();
+        // Load settings via the SettingsManager
+        var settings = SettingsManager.LoadSettings();
+        _deviceConfig = DeviceConfig.Instance;
+
+        // Publish the initial device type
+        EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(settings.DeviceType);
+        
     }
 
-    private void onDeviceTypeChangeEvent(DeviceType deviceTypeEvent)
+    private void OnDeviceTypeChangeEvent(DeviceType deviceTypeEvent)
     {
-        if (deviceTypeEvent == DeviceType.Radxa || deviceTypeEvent == DeviceType.NVR)
-            IsVRXEnabled = true;
-        // var targetTab = MainView.TabControlInstance.Items
-        //     .OfType<TabItem>()
-        //     .FirstOrDefault(tab => tab.Header?.ToString() == "WFB-GS");
-        else
-            IsVRXEnabled = false;
+        Log.Debug($"Device type changed to: {deviceTypeEvent}");
+
+        // Update IsVRXEnabled based on the device type
+        IsVRXEnabled = deviceTypeEvent == DeviceType.Radxa || deviceTypeEvent == DeviceType.NVR;
+
+        // Update the selected tab based on the device type
+        SelectedTab = IsVRXEnabled ? "WFB-GS" : "WFB";
+
+        // Notify the view of tab changes
+        EventSubscriptionService.Publish<TabSelectionChangeEvent, string>(SelectedTab);
     }
 }

@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using MsBox.Avalonia;
 using OpenIPC_Config.Models;
 using Prism.Events;
 using Renci.SshNet;
@@ -12,11 +13,11 @@ namespace OpenIPC_Config.Services;
 
 public class SshClientService : ISshClientService
 {
-    private IEventAggregator _eventAggregator;
+    private IEventSubscriptionService _eventSubscriptionService;
 
-    public SshClientService(IEventAggregator eventAggregator)
+    public SshClientService(IEventSubscriptionService eventSubscriptionService)
     {
-        _eventAggregator = eventAggregator;
+        _eventSubscriptionService = eventSubscriptionService;
     }
 
     public async Task<SshCommand> ExecuteCommandWithResponse(DeviceConfig deviceConfig, string command,
@@ -285,7 +286,8 @@ public class SshClientService : ISshClientService
     public async Task UploadBinaryAsync(DeviceConfig deviceConfig, string remoteDirectory,
         Models.OpenIPC.FileType fileType, string fileName)
     {
-        var binariesFolderPath = Path.Combine(Environment.CurrentDirectory, "binaries");
+        var binariesFolderPath = OpenIPC.GetBinariesPath();
+        Log.Debug($"Binaries folder path: {binariesFolderPath}");
         var filePath = string.Empty;
         var remoteFilePath = string.Empty;
 
@@ -309,11 +311,17 @@ public class SshClientService : ISshClientService
                 break;
         }
 
+        Log.Debug($"file path: {filePath}");
         if (File.Exists(filePath))
         {
             Log.Information($"Uploading {fileName} to {remoteFilePath}...");
             await UploadFileAsync(deviceConfig, filePath, remoteFilePath);
             Log.Information($"Uploaded {fileName} successfully.");
+        }
+        else
+        {
+            var msgBox = MessageBoxManager.GetMessageBoxStandard("Error", $"File {fileName} not found.");
+            msgBox.ShowAsync();
         }
     }
 
@@ -434,69 +442,98 @@ public class SshClientService : ISshClientService
     
     // This is used for sysupgrade commands
     public async Task ExecuteCommandWithProgressAsync(DeviceConfig deviceConfig, string command, Action<string> updateProgress, CancellationToken cancellationToken = default)
-{
-    var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
-        new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-
-    using var client = new SshClient(connectionInfo);
-    try
     {
-        client.Connect();
-        if (!client.IsConnected)
+        var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
+            new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
+
+        using var client = new SshClient(connectionInfo);
+        try
         {
-            updateProgress("Unable to connect to the host.");
-            return;
-        }
-
-        using var shellStream = client.CreateShellStream("commands", 80, 24, 800, 600, 1024);
-        shellStream.WriteLine(command);
-
-        var outputBuffer = new StringBuilder();
-        bool commandCompleted = false;
-
-        while (!cancellationToken.IsCancellationRequested && !commandCompleted)
-        {
+            client.Connect();
             if (!client.IsConnected)
             {
-                updateProgress("Connection lost.");
-                break;
+                updateProgress("Unable to connect to the host.");
+                return;
             }
 
-            // Read available data
-            while (shellStream.DataAvailable)
-            {
-                var output = shellStream.ReadLine();
-                if (output != null)
-                {
-                    outputBuffer.AppendLine(output);
-                    updateProgress(output);
+            using var shellStream = client.CreateShellStream("commands", 80, 24, 800, 600, 1024);
+            shellStream.WriteLine(command);
 
-                    // Check for the end condition
-                    if (output.Contains("Unconditional reboot"))
+            var outputBuffer = new StringBuilder();
+            bool commandCompleted = false;
+
+            // Set a timeout for the command execution (e.g., 2 minutes)
+            var timeout = TimeSpan.FromMinutes(1);
+            var startTime = DateTime.UtcNow;
+
+            while (!cancellationToken.IsCancellationRequested && !commandCompleted)
+            {
+                if (!client.IsConnected)
+                {
+                    updateProgress("Connection lost.");
+                    break;
+                }
+
+                Log.Debug("*******************");
+                // Check for timeout
+                if (DateTime.UtcNow - startTime > timeout)
+                {
+                    updateProgress("Command execution timed out.");
+                    break;
+                }
+
+                // Read available data
+                while (shellStream.DataAvailable)
+                {
+                    var output = shellStream.ReadLine();
+                    if (output != null)
                     {
-                        commandCompleted = true;
-                        updateProgress("Reboot detected. Command execution completed.");
-                        break;
+                        outputBuffer.AppendLine(output);
+                        updateProgress(output);
+
+                        // Check for the end condition
+                        if (output.Contains("Unconditional reboot"))
+                        {
+                            commandCompleted = true;
+                            updateProgress("Reboot detected. Command execution completed.");
+                            break;
+                        }
+                        if (output.Contains("Arguments written"))
+                        {
+                            commandCompleted = true;
+                            updateProgress("Reboot detected. Command execution completed.");
+                            break;
+                        }
+                         
+                        
+                        await Task.Delay(100); // Non-blocking pause
+                        Log.Debug("Waiting for command to complete...");
+                        
                     }
                 }
+
+                // Wait a bit before checking again to avoid a tight loop
+                await Task.Delay(100, cancellationToken);
             }
 
-            // Wait a bit before checking again to avoid a tight loop
-            await Task.Delay(100, cancellationToken);
+            if (!commandCompleted)
+            {
+                updateProgress("Command did not complete successfully.");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            updateProgress("Operation canceled by user.");
+        }
+        catch (Exception ex)
+        {
+            updateProgress($"Error: {ex.Message}");
+        }
+        finally
+        {
+            client.Disconnect();
         }
     }
-    catch (OperationCanceledException)
-    {
-        updateProgress("Operation canceled by user.");
-    }
-    catch (Exception ex)
-    {
-        updateProgress($"Error: {ex.Message}");
-    }
-    finally
-    {
-        client.Disconnect();
-    }
-}
+
 
 }

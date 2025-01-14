@@ -8,12 +8,9 @@ Based off of MarioFPV's [OpenIPC Config](https://github.com/OpenIPC/configurator
 
 [Demo on YouTube](https://www.youtube.com/watch?v=iJXXMcnOC7w)
 
-## TODO:
-* Fix UI and views
-* Cleanup code
-* Add more features
 * Android and IOS versions coming soon!
 
+**Note: At this time NVR is not supported, please use MarioFPV's [OpenIPC Config](https://github.com/OpenIPC/configurator) for NVR support. I plan on adding support later**
 
 ## Features
 
@@ -39,10 +36,14 @@ Based off of MarioFPV's [OpenIPC Config](https://github.com/OpenIPC/configurator
 * `Styles`: contains styles and resources for the application, including themes and fonts
 * `README.md`: this file, containing information about the project and its features
 
+## Logging
+
+https://github.com/serilog/serilog/wiki/Configuration-Basics
+
 ## App Logs
 * Android: /data/user/0/org.openipc.OpenIPC/files/.config/openipc-configurator.log
-* Mac: Library/Application Support/OpenIPC_Config/Logs
-* Windows: %APPDATA%\OpenIPC_Config\Logs
+* Mac: "$HOME/Library/Application Support/OpenIPC_Config/Logs"
+* Windows: %APPDATA%\Local\OpenIPC_Config\Logs
 * Linux: ~/.config/openipc-configurator.log
 
 
@@ -104,6 +105,13 @@ When creating tags, follow semantic versioning:
 * v1.1.0: Minor release (new features, backwards compatible).
 * v2.0.0: Major release (breaking changes).
 
+
+## Code Coverage
+
+```
+dotnet test --collect:"XPlat Code Coverage"  
+reportgenerator -reports:"TestResults/**/*.xml" -targetdir:coverage-report -reporttypes:Html
+```
 
 
 IOS:

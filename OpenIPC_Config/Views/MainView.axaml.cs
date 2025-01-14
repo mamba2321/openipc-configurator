@@ -1,7 +1,13 @@
+using System;
+using System.Linq;
 using Avalonia.Controls;
+using Microsoft.Extensions.DependencyInjection;
 using OpenIPC_Config.Events;
 using OpenIPC_Config.Models;
+using OpenIPC_Config.Services;
 using OpenIPC_Config.ViewModels;
+using Prism.Events;
+using Serilog;
 
 namespace OpenIPC_Config.Views;
 
@@ -11,13 +17,36 @@ public partial class MainView : UserControl
     {
         InitializeComponent();
 
-        if (!Design.IsDesignMode) DataContext = new MainViewModel();
+        if (!Design.IsDesignMode)
+        {
+            // Resolve MainViewModel from the DI container
+            DataContext = App.ServiceProvider.GetRequiredService<MainViewModel>();
 
-        TabControlInstance = this.FindControl<TabControl>("MainTabControl");
-
-        var eventAggregator = App.EventAggregator;
-        eventAggregator.GetEvent<DeviceTypeChangeEvent>().Publish(DeviceType.None);
+            // Subscribe to TabSelectionChangeEvent
+            var _eventSubscriptionService = App.ServiceProvider.GetRequiredService<IEventSubscriptionService>();
+            
+            _eventSubscriptionService.Subscribe<TabSelectionChangeEvent, string>(OnTabSelectionChanged);
+        }
+        else
+        {
+            // Provide a default DataContext for design-time
+            DataContext = App.ServiceProvider.GetRequiredService<MainViewModel>(); 
+        }
     }
 
-    public static TabControl TabControlInstance { get; set; }
+    private void OnTabSelectionChanged(string selectedTab)
+    {
+        // Find the TabControl
+        var tabControl = this.FindControl<TabControl>("MainTabControl");
+
+        // Find the target TabItem by its Header
+        var targetTab = tabControl.Items
+            .OfType<TabItem>()
+            .FirstOrDefault(tab => tab.Header?.ToString() == selectedTab);
+
+        if (targetTab != null)
+        {
+            targetTab.IsSelected = true;
+        }
+    }
 }

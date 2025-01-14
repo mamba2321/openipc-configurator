@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace OpenIPC_Config.Models;
 
@@ -26,15 +27,8 @@ public class OpenIPC
     public const string ScreenModeFileLoc = "/config/scripts/screen-mode";
 
 
-    public const string LocalBackUpFolder = "binaries";
-    public const string LocalBinariesFolder = "binaries";
-    public const string LocalSensorsFolder = "binaries/sensors";
-    public const string LocalFontsFolder = "binaries/fonts";
-    public const string LocalBetaFlightFontsFolder = "binaries/fonts/bf";
-    public const string LocalINavFontsFolder = "binaries/fonts/inav";
-
     public const string KeyMD5Sum = "24767056dc165963fe6db7794aee12cd";
-//    public const string LocalFwFolder = "binaries/fw";
+    public const string LocalWifiBroadcastBinFileLoc = "binaries/clean/wifibroadcast"; 
 
 
     public const string RemoteEtcFolder = "/etc";
@@ -44,12 +38,14 @@ public class OpenIPC
     public const string RemoteDroneKeyPath = "/etc/drone.key";
     public const string RemoteGsKeyPath = "/etc/gs.key";
     public const string RemoteTempFolder = "/tmp";
+    public const string RemoteWifiBroadcastBinFileLoc = "/usr/bin/wifibroadcast";
 
-    public const string DroneKeyPath = "binaries/drone.key";
-
+    public static string DroneKeyPath;
+    public static string GsKeyPath;
 
     public static string LocalFirmwareFolder;
-
+    public static string LocalBackUpFolder;
+    
     public static string DeviceUsername = "root";
 
     static OpenIPC()
@@ -65,10 +61,44 @@ public class OpenIPC
 
     public static string DeviceSettingsConfigPath { get; private set; }
 
+    public static string GetBinariesPath()
+    {
+        string basePath;
+
+        // Determine the base path for the binaries folder
+        if (OperatingSystem.IsMacOS())
+        {
+            // macOS: binaries will be inside the app bundle's resources folder
+            basePath = AppContext.BaseDirectory; // Gets the app's execution directory
+            return Path.Combine(basePath, "binaries");
+        }
+        else if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+        {
+            // Windows and Linux: binaries are alongside the app
+            basePath = AppContext.BaseDirectory;
+            return Path.Combine(basePath, "binaries");
+        }
+        
+        else if (OperatingSystem.IsAndroid() )
+        {
+            basePath = AppContext.BaseDirectory;
+            return basePath;
+        }
+        else if (OperatingSystem.IsIOS())
+        {
+            basePath = AppContext.BaseDirectory;
+            return Path.Combine(basePath, "binaries");
+        }
+
+        throw new PlatformNotSupportedException("Unsupported platform");
+    }
+    
     private static void InitializePaths()
     {
         var appName = Assembly.GetExecutingAssembly().GetName().Name;
 
+        
+        
         if (OperatingSystem.IsAndroid())
         {
             // Android-specific path
@@ -78,6 +108,9 @@ public class OpenIPC
             DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
+            
+            DroneKeyPath =  Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "drone.key");
+            GsKeyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "gs.key");
         }
         else if (OperatingSystem.IsIOS())
         {
@@ -88,16 +121,25 @@ public class OpenIPC
             DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
+            LocalBackUpFolder =  Path.Combine(AppDataConfigDirectory, "backup");
+            
+            DroneKeyPath =  Path.Combine(AppDataConfigDirectory, "binaries/drone.key");
+            GsKeyPath = Path.Combine(AppDataConfigDirectory, "binaries/gs.key");
         }
         else if (OperatingSystem.IsWindows())
         {
             AppDataConfigDirectory =
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName);
+            
             AppDataConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 appName, "appsettings.json");
             DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
+            LocalBackUpFolder =  Path.Combine(AppDataConfigDirectory, "backup");
+            
+            DroneKeyPath =  Path.Combine(AppDataConfigDirectory, "binaries/drone.key");
+            GsKeyPath = Path.Combine(AppDataConfigDirectory, "binaries/gs.key");
         }
         else if (OperatingSystem.IsMacOS())
         {
@@ -108,6 +150,10 @@ public class OpenIPC
             DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
+            LocalBackUpFolder =  Path.Combine(AppDataConfigDirectory, "backup");
+            
+            DroneKeyPath =  Path.Combine(AppDataConfigDirectory, "binaries/drone.key");
+            GsKeyPath = Path.Combine(AppDataConfigDirectory, "binaries/gs.key");
         }
         else // Assume Linux
         {
@@ -116,8 +162,13 @@ public class OpenIPC
             DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
+            LocalBackUpFolder =  Path.Combine(AppDataConfigDirectory, "backup");
+            
+            DroneKeyPath =  Path.Combine(AppDataConfigDirectory, "binaries/drone.key");
+            GsKeyPath = Path.Combine(AppDataConfigDirectory, "binaries/gs.key");
         }
 
+        
             
         // Ensure the config directory exists
         Directory.CreateDirectory(AppDataConfigDirectory);

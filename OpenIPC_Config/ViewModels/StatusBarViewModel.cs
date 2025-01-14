@@ -1,3 +1,4 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OpenIPC_Config.Events;
 using OpenIPC_Config.Services;
@@ -8,7 +9,6 @@ namespace OpenIPC_Config.ViewModels;
 
 public partial class StatusBarViewModel : ViewModelBase
 {
-    private readonly IEventAggregator _eventAggregator;
     
     [ObservableProperty] private string _hostNameText;
 
@@ -18,19 +18,30 @@ public partial class StatusBarViewModel : ViewModelBase
 
     [ObservableProperty] private string _appVersionText;
     
-    public StatusBarViewModel()
+    public StatusBarViewModel(ILogger logger,
+        ISshClientService sshClientService,
+        IEventSubscriptionService eventSubscriptionService)
+        : base(logger, sshClientService, eventSubscriptionService)
     {
-        _eventAggregator = App.EventAggregator;
-        _eventAggregator.GetEvent<AppMessageEvent>().Subscribe(UpdateStatus);
-
-        _appVersionText = VersionHelper.GetAppVersion();
+        
+        EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(UpdateStatus);
+        
+        _appVersionText = GetFormattedAppVersion();
     }
 
+    private string GetFormattedAppVersion()
+    {
+        var fullVersion = VersionHelper.GetAppVersion();
+
+        // Extract the first part of the version (e.g., "1.0.0")
+        var truncatedVersion = fullVersion.Split('+')[0]; // Handles semantic versions like "1.0.0+buildinfo"
+        return truncatedVersion.Length > 10 ? truncatedVersion.Substring(0, 10) : truncatedVersion;
+    }
     
 
     private void UpdateStatus(AppMessage appMessage)
     {
-        Log.Debug(appMessage.ToString());
+        Log.Verbose(appMessage.ToString());
 
 
         if (!string.IsNullOrEmpty(appMessage.Status)) StatusText = appMessage.Status;

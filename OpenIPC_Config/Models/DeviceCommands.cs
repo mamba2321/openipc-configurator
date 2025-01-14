@@ -2,9 +2,14 @@ namespace OpenIPC_Config.Models;
 
 public static class DeviceCommands
 {
+    public const string Dos2UnixCommand = "dos2unix";
+    
     public const string WfbStartCommand = "wifibroadcast start";
     public const string WfbStopCommand = "wifibroadcast stop";
     public const string WfbRestartCommand = "wifibroadcast stop; sleep 2; wifibroadcast start";
+    
+    public const string GsWfbStartCommand = "systemctl start openipc.service";
+    public const string GsWfbStopCommand = "systemctl stop openipc.service";
 
     public const string MajesticRestartCommand = "killall -1 majestic";
 
@@ -26,7 +31,7 @@ public static class DeviceCommands
 
     public const string ResetCameraCommand = "firstboot";
 
-    public const string GetHostname = "hostname";
+    public const string GetHostname = "hostname -s";
 
     public const string GenerateKeys = "wfb_keygen";
 
@@ -41,4 +46,18 @@ public static class DeviceCommands
         // "sed -i 's/echo \\\"Starting wifibroadcast service...\\\"/echo \\\"\\&L70 \\&F35 CPU:\\&C \\&B Temp:\\&T\\\" > \\/tmp\\/MSPOSD.msg /' /etc/init.d/S98datalink";
         
     public static string DataLinkRestart = "/etc/init.d/S98datalink stop ;/etc/init.d/S98datalink start";
+    
+    
+    public const string GSMSPDisplayportCommand = @"sed -i '/pixelpilot --osd --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4/c\pixelpilot --osd --osd-elements video,wfbng --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4 ""&""' /config/scripts/stream.sh";
+    public const string GSMSPDisplayport2Command = @"sed -i '/pixelpilot --osd --screen-mode $SCREEN_MODE/c\pixelpilot --osd --osd-elements video,wfbng --screen-mode $SCREEN_MODE ""&""' /config/scripts/stream.sh";
+    
+    public const string GsMavExtended1 =  @"sed -i '/pixelpilot --osd --osd-elements video,wfbng --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4 ""&""/c\pixelpilot --osd --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4 --osd-telem-lvl 2 ""&""' /config/scripts/stream.sh";
+    public const string GsMavExtended2 = @"sed -i '/pixelpilot --osd --osd-elements video,wfbng --screen-mode $SCREEN_MODE ""&""/c\pixelpilot --osd --screen-mode $SCREEN_MODE --osd-telem-lvl 2 ""&""' /config/scripts/stream.sh";
+
+    public const string GsMavBasic1 = @"sed -i '/pixelpilot --osd --osd-elements video,wfbng --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4 ""&""/c\pixelpilot --osd --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4 --osd-telem-lvl 1 ""&""' /config/scripts/stream.sh";
+    public const string GsMavBasic2 = @"sed -i '/pixelpilot --osd --osd-elements video,wfbng --screen-mode $SCREEN_MODE ""&""/c\pixelpilot --osd --screen-mode $SCREEN_MODE --osd-telem-lvl 1 ""&""' /config/scripts/stream.sh";
+
+ 
+
+
 }

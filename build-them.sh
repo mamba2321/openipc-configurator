@@ -2,9 +2,9 @@
 
 
 # Define the project names and paths
-desktop_project="OpenIPC/OpenIPC_Config.Desktop"
-android_project="OpenIPC/OpenIPC_Config.Android"
-ios_project="OpenIPC/OpenIPC_Config.iOS"
+desktop_project="OpenIPC_Config.Desktop"
+android_project="OpenIPC_Config.Android"
+ios_project="OpenIPC_Config.iOS"
 
 # Build output directory
 output_dir="build"
@@ -23,6 +23,10 @@ clean_builds() {
     mkdir -p "$output_dir"
 }
 
+run_tests() {
+    echo "Running tests..."
+    dotnet test --logger "trx;LogFileName=TestResults.xml"
+}
 # Function to create macOS .app bundle
 create_macos_app_bundle() {
     app_name="OpenIPC_Config"
@@ -35,7 +39,7 @@ create_macos_app_bundle() {
     # Copy the icon file
     echo "Copying icon file..."
     
-    cp "OpenIPC/OpenIPC_Config/Assets/Icons/OpenIPC.icns" "$app_bundle/Contents/Resources/$app_name.icns"
+    cp "OpenIPC_Config/Assets/Icons/OpenIPC.icns" "$app_bundle/Contents/Resources/$app_name.icns"
 
     # Move the executable file
     echo "Moving executable to .app bundle..."
@@ -154,6 +158,7 @@ done
 
 # Clean previous builds
 clean_builds
+run_tests
 
 # Execute builds based on the selected options
 if [ "$build_all" = true ] || [ "$build_macos" = true ]; then

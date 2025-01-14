@@ -18,15 +18,15 @@ namespace OpenIPC_Config.ViewModels;
 
 public partial class CameraSettingsTabViewModel : ViewModelBase
 {
-    private readonly ISshClientService _sshClientService;
-    private DeviceConfig _deviceConfig;
+    private readonly IYamlConfigService _yamlConfigService;
+    private readonly IEventSubscriptionService _eventSubscriptionService;
 
-    private readonly IEventAggregator _eventAggregator;
+    private readonly Dictionary<string, string> _yamlConfig = new();
 
+    [ObservableProperty] private bool _canConnect;
     
     [ObservableProperty] private ObservableCollection<string> _bitrate;
 
-    [ObservableProperty] private bool _canConnect;
     [ObservableProperty] private ObservableCollection<string> _codec;
     [ObservableProperty] private ObservableCollection<string> _contrast;
 
@@ -38,7 +38,7 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
 
     [ObservableProperty] private ObservableCollection<string> _mirror;
     
-    [ObservableProperty] public ObservableCollection<string> _resolution;
+    [ObservableProperty] private ObservableCollection<string> _resolution;
     [ObservableProperty] private ObservableCollection<string> _saturation;
     
     [ObservableProperty] private ObservableCollection<string> _fpvEnabled;
@@ -56,9 +56,7 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
     [ObservableProperty] private ObservableCollection<string> _fpvRoiRectHeight = new ObservableCollection<string> {"" };
     [ObservableProperty] private ObservableCollection<string> _fpvRoiRectWidth = new ObservableCollection<string> {"" };
 
-
     [ObservableProperty] private string _selectedBitrate;
-
 
     [ObservableProperty] private string _selectedCodec;
 
@@ -79,47 +77,53 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
     [ObservableProperty] private string _selectedResolution;
 
     [ObservableProperty] private string _selectedSaturation;
-    
+
     [ObservableProperty] private string _selectedFpvEnabled;
-    
+
     [ObservableProperty] private string _selectedFpvNoiseLevel;
-    
+
     [ObservableProperty] private string _selectedFpvRoiQp;
-    
+
     [ObservableProperty] private string _selectedFpvRefEnhance;
-    
+
     [ObservableProperty] private string _selectedFpvRefPred;
-    
+
     [ObservableProperty] private string _selectedFpvIntraLine;
-    
+
     [ObservableProperty] private string _selectedFpvIntraQp;
-    
-    
-    private readonly Dictionary<string, string> _yamlConfig = new();
+    public ICommand RestartMajesticCommand { get; }
 
-
-    public CameraSettingsTabViewModel()
+    public CameraSettingsTabViewModel(
+        ILogger logger,
+        ISshClientService sshClientService,
+        IEventSubscriptionService eventSubscriptionService,
+        IYamlConfigService yamlConfigService)
+        : base(logger, sshClientService, eventSubscriptionService)
     {
+        _yamlConfigService = yamlConfigService ?? throw new ArgumentNullException(nameof(yamlConfigService));
+        _eventSubscriptionService = eventSubscriptionService ??
+                                    throw new ArgumentNullException(nameof(eventSubscriptionService));
+
         InitializeCollections();
 
-        _eventAggregator = App.EventAggregator;
-        _eventAggregator?.GetEvent<MajesticContentUpdatedEvent>().Subscribe(OnMajesticContentUpdated);
-        _eventAggregator.GetEvent<AppMessageEvent>().Subscribe(OnAppMessage);
+        RestartMajesticCommand = new RelayCommand(async () => await SaveRestartMajesticCommand());
 
-
-        RestartMajesticCommand = new RelayCommand(() => RestartMajestic());
-
-        _sshClientService = new SshClientService(_eventAggregator);
+        _eventSubscriptionService.Subscribe<MajesticContentUpdatedEvent, MajesticContentUpdatedMessage>(
+            OnMajesticContentUpdated);
+        
+        _eventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(
+            OnAppMessageEvent);
     }
 
-    public ICommand RestartMajesticCommand { get; private set; }
-
-
-
-
-    private async void RestartMajestic()
+    private void OnAppMessageEvent(AppMessage appMessage)
     {
-        await SaveRestartMajesticCommand();
+        if(appMessage != null)
+        {
+            // controls buttons
+            CanConnect = appMessage.CanConnect;
+        }
+        
+        
     }
 
     partial void OnSelectedResolutionChanged(string value)
@@ -135,7 +139,6 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
         Log.Debug($"SelectedFps updated to {value}");
         UpdateYamlConfig(Majestic.VideoFps, value);
     }
-
     partial void OnSelectedCodecChanged(string value)
     {
         // Custom logic when the property changes
@@ -199,20 +202,6 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
         UpdateYamlConfig(Majestic.ImageMirror, value);
     }
 
-    private void OnAppMessage(AppMessage appMessage)
-    {
-        if (appMessage.CanConnect) CanConnect = appMessage.CanConnect;
-        //Log.Debug($"CanConnect {CanConnect.ToString()}");
-    }
-
-
-    private void OnMajesticContentUpdated(MajesticContentUpdatedMessage message)
-    {
-        var majesticContent = message.Content;
-        CanConnect = true;
-        ParseYamlConfig(majesticContent);
-    }
-
     partial void OnSelectedFpvEnabledChanged(string value)
     {
         // Custom logic when the property changes
@@ -263,36 +252,44 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
     }
     
     
-    partial void OnFpvRoiRectLeftChanged(ObservableCollection<string> value)
-    {
-        Log.Debug($"SelectedFpvRoiRectLeftChanged updated to {value[0]}");
-        UpdateCombinedValue();
-    }
-    
-    partial void OnFpvRoiRectTopChanged(ObservableCollection<string> value)
-    {
-        Log.Debug($"SelectedFpvRoiRectTopChanged updated to {value}");
-        UpdateCombinedValue();
-    }
-    
-    partial void OnFpvRoiRectHeightChanged(ObservableCollection<string> value)
-    {
-        Log.Debug($"SelectedFpvRoiRectHeightChanged updated to {value}");
-        UpdateCombinedValue();
-    }
-    
-    partial void OnFpvRoiRectWidthChanged(ObservableCollection<string> value)
-    {
-        Log.Debug($"SelectedFpvRoiRectWidthChanged updated to {value}");
-        UpdateCombinedValue();
-    }
-
     private void UpdateCombinedValue()
     {
-        CombinedFpvRoiRectValue = $"{FpvRoiRectLeft[0]}x{FpvRoiRectTop[0]}x{FpvRoiRectHeight[0]}x{FpvRoiRectWidth[0]}";
+        var fpvRoiRectLeft = FpvRoiRectLeft[0];
+        var fpvRoiRectTop = FpvRoiRectTop[0];
+        var fpvRoiRectHeight = FpvRoiRectHeight[0];
+        var fpvRoiRectWidth = FpvRoiRectWidth[0];
+
+        if (string.IsNullOrEmpty(fpvRoiRectLeft) &&
+            string.IsNullOrEmpty(fpvRoiRectTop) &&
+            string.IsNullOrEmpty(fpvRoiRectHeight) &&
+            string.IsNullOrEmpty(fpvRoiRectWidth)
+           )
+        {
+            // set to empty so that it removes the settings
+            CombinedFpvRoiRectValue = "";
+        }
+        else
+        {
+            CombinedFpvRoiRectValue = $"{FpvRoiRectLeft[0]}x{FpvRoiRectTop[0]}x{FpvRoiRectHeight[0]}x{FpvRoiRectWidth[0]}";    
+        }
+        
         Log.Debug($"Combined value updated to {CombinedFpvRoiRectValue}");
         UpdateYamlConfig(Majestic.FpvRoiRect, CombinedFpvRoiRectValue);
     }
+    
+    public void UpdateYamlConfig(string key, string newValue)
+    {
+        if (_yamlConfig.ContainsKey(key))
+            _yamlConfig[key] = newValue;
+        else
+            _yamlConfig.Add(key, newValue);
+
+        if (string.IsNullOrEmpty(newValue))
+        {
+            _yamlConfig.Remove(key);
+        }
+    }
+    
     
     private void InitializeCollections()
     {
@@ -311,387 +308,175 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
         Bitrate = new ObservableCollection<string>
             { "1024", "2048", "3072", "4096", "5120", "6144", "7168", "8192", "9216" };
         Exposure = new ObservableCollection<string> { "5", "6", "8", "10", "11", "12", "14", "16", "33", "50" };
-        Contrast = new ObservableCollection<string>
-            { "1", "5", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100" };
-        Hue = new ObservableCollection<string>
-            { "1", "5", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100" };
-        Saturation = new ObservableCollection<string>
-            { "1", "5", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100" };
-        Luminance = new ObservableCollection<string>
-            { "1", "5", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100" };
+        
+        Contrast = new ObservableCollection<string>(Enumerable.Range(1, 100).Select(i => (i * 5).ToString()));
+        Hue = new ObservableCollection<string>(Enumerable.Range(1, 100).Select(i => (i * 5).ToString()));
+        Saturation = new ObservableCollection<string>(Enumerable.Range(1, 100).Select(i => (i * 5).ToString()));
+        Luminance = new ObservableCollection<string>(Enumerable.Range(1, 100).Select(i => (i * 5).ToString()));
+        
         Flip = new ObservableCollection<string> { "true", "false" };
         Mirror = new ObservableCollection<string> { "true", "false" };
         
         FpvEnabled = new ObservableCollection<string> { "true", "false" };
-        FpvNoiseLevel = new ObservableCollection<string> { "0", "1", "2" };
+        FpvNoiseLevel = new ObservableCollection<string> { "","0", "1", "2" };
+        
         
         // Create an ObservableCollection with values from -30 to 30
         FpvRoiQp = new ObservableCollection<string>(Enumerable.Range(-30, 61).Select(i => i.ToString()));
+        FpvRoiQp.Insert(0,"");
         
         FpvRefEnhance = new ObservableCollection<string>(Enumerable.Range(0, 10).Select(i => i.ToString()));
+        FpvRefEnhance.Insert(0,"");
         
-        FpvRefPred = new ObservableCollection<string> { "true", "false" };
+        FpvRefPred = new ObservableCollection<string> { "", "true", "false" };
         
         FpvIntraLine = new ObservableCollection<string>(Enumerable.Range(0, 10).Select(i => i.ToString()));
-        FpvIntraQp = new ObservableCollection<string>{ "true", "false" };
-
+        FpvIntraLine.Insert(0,"");
+        
+        FpvIntraQp = new ObservableCollection<string>{ "","true", "false" };
 
         FpvRoiRectLeft = new ObservableCollection<string> { "" };
-
-
     }
 
-    // YAML parsing and updating methods (unchanged)
-    private void ParseYamlConfig(string content)
+    public void OnMajesticContentUpdated(MajesticContentUpdatedMessage message)
     {
-        using var reader = new StringReader(content);
-        var yaml = new YamlStream();
-        yaml.Load(reader);
+        Logger.Debug("Processing MajesticContentUpdatedMessage.");
+        _yamlConfigService.ParseYaml(message.Content, _yamlConfig);
+        UpdateViewModelPropertiesFromYaml();
+    }
 
-        if (yaml.Documents.Count == 0)
+    private void UpdateViewModelPropertiesFromYaml()
+    {
+        if (_yamlConfig.TryGetValue(Majestic.VideoSize, out var resolution))
         {
-            Log.Debug("No content in yaml");
-
-            return; // empty yaml (no content in yaml)
+            SelectedResolution = resolution;
         }
 
-        var root = (YamlMappingNode)yaml.Documents[0].RootNode;
-        foreach (var entry in root.Children) ParseYamlNode(entry.Key.ToString(), entry.Value);
-    }
-
-    private void ParseYamlNode(string parentKey, YamlNode node)
-    {
-        if (node is YamlMappingNode mappingNode)
+        if (_yamlConfig.TryGetValue(Majestic.VideoFps, out var fps))
         {
-            foreach (var child in mappingNode.Children)
+            SelectedFps = fps;
+        }
+
+        if (_yamlConfig.TryGetValue(Majestic.VideoCodec, out var codec))
+        {
+            SelectedCodec = codec;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.VideoBitrate, out var bitrate))
+        {
+            SelectedBitrate = bitrate;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.IspExposure, out var exposure))
+        {
+            SelectedExposure = exposure;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.ImageContrast, out var contrast))
+        {
+            SelectedContrast = contrast;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.ImageHue, out var hue))
+        {
+            SelectedHue = hue;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.ImageSaturation, out var saturation))
+        {
+            SelectedSaturation = saturation;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.ImageLuminance, out var luminance))
+        {
+            SelectedLuminance = luminance;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.ImageFlip, out var flip))
+        {
+            SelectedFlip = flip;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.ImageMirror, out var mirror))
+        {
+            SelectedMirror = mirror;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvEnabled, out var fpvEnabled))
+        {
+            SelectedFpvEnabled = fpvEnabled;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvNoiseLevel, out var fpvNoiseLevel))
+        {
+            SelectedFpvNoiseLevel = fpvNoiseLevel;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvRoiQp, out var fpvRoiQp))
+        {
+            SelectedFpvRoiQp = fpvRoiQp;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvRefEnhance, out var fpvRefEnhance))
+        {
+            SelectedFpvRefEnhance= fpvRefEnhance;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvRefPred, out var fpvRefPred))
+        {
+            SelectedFpvRefPred= fpvRefPred;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvIntraLine, out var fpvIntraLine))
+        {
+            SelectedFpvIntraLine= fpvIntraLine;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvIntraQp, out var fpvIntraQp))
+        {
+            SelectedFpvIntraQp = fpvIntraQp;
+        }
+        
+        if (_yamlConfig.TryGetValue(Majestic.FpvRoiRect, out var fpvRoiRect))
+        {
+            var parts = fpvRoiRect.Split('x');
+            if (parts.Length == 4)
             {
-                var childKey = child.Key.ToString();
-                ParseYamlNode($"{parentKey}.{childKey}", child.Value);
+                // Update ObservableCollection values
+                // Update the first element of each ObservableCollection
+                if (FpvRoiRectLeft.Count > 0) FpvRoiRectLeft[0] = parts[0];
+                if (FpvRoiRectTop.Count > 0) FpvRoiRectTop[0] = parts[1];
+                if (FpvRoiRectHeight.Count > 0) FpvRoiRectHeight[0] = parts[2];
+                if (FpvRoiRectWidth.Count > 0) FpvRoiRectWidth[0] = parts[3];
             }
-        }
-        else if (node is YamlScalarNode scalarNode)
-        {
-            var fullKey = parentKey;
-            var value = scalarNode.Value;
-
-            if (_yamlConfig.ContainsKey(fullKey))
-                _yamlConfig[fullKey] = value;
             else
-                _yamlConfig.Add(fullKey, value);
-
-            Log.Debug($"Camera Found {fullKey}: {scalarNode.Value}");
-
-            // Update UI properties based on the keys found
-            switch (fullKey)
             {
-                case Majestic.VideoSize:
-                    if (Resolution?.Contains(value) ?? false)
-                    {
-                        SelectedResolution = value;
-                    }
-                    else
-                    {
-                        Resolution.Add(value);
-                        SelectedResolution = value;
-                    }
-
-                    break;
-                case Majestic.VideoFps:
-                    if (Fps?.Contains(value) ?? false)
-                    {
-                        SelectedFps = value;
-                    }
-                    else
-                    {
-                        Fps.Add(value);
-                        SelectedFps = value;
-                    }
-
-                    break;
-                case Majestic.VideoCodec:
-                    if (Codec?.Contains(value) ?? false)
-                    {
-                        SelectedCodec = value;
-                    }
-                    else
-                    {
-                        Codec.Add(value);
-                        SelectedCodec = value;
-                    }
-
-                    break;
-                case Majestic.VideoBitrate:
-                    if (Bitrate?.Contains(value) ?? false)
-                    {
-                        SelectedBitrate = value;
-                    }
-                    else
-                    {
-                        Bitrate.Add(value);
-                        SelectedBitrate = value;
-                    }
-
-                    break;
-                case Majestic.IspExposure:
-                    if (Exposure?.Contains(value) ?? false)
-                    {
-                        SelectedExposure = value;
-                    }
-                    else
-                    {
-                        Exposure.Add(value);
-                        SelectedExposure = value;
-                    }
-
-                    break;
-                case Majestic.ImageContrast:
-                    if (Contrast?.Contains(value) ?? false)
-                    {
-                        SelectedContrast = value;
-                    }
-                    else
-                    {
-                        Contrast.Add(value);
-                        SelectedContrast = value;
-                    }
-
-                    break;
-                case Majestic.ImageHue:
-                    if (Hue?.Contains(value) ?? false)
-                    {
-                        SelectedHue = value;
-                    }
-                    else
-                    {
-                        Hue.Add(value);
-                        SelectedHue = value;
-                    }
-
-                    break;
-                case Majestic.ImageSaturation:
-                    if (Saturation?.Contains(value) ?? false)
-                    {
-                        SelectedSaturation = value;
-                    }
-                    else
-                    {
-                        Saturation.Add(value);
-                        SelectedSaturation = value;
-                    }
-
-                    break;
-                case Majestic.ImageLuminance:
-                    if (Luminance?.Contains(value) ?? false)
-                    {
-                        SelectedLuminance = value;
-                    }
-                    else
-                    {
-                        Luminance.Add(value);
-                        SelectedLuminance = value;
-                    }
-
-                    break;
-                case Majestic.ImageFlip:
-                    if (Flip?.Contains(value) ?? false)
-                    {
-                        SelectedFlip = value;
-                    }
-                    else
-                    {
-                        Flip.Add(value);
-                        SelectedFlip = value;
-                    }
-
-                    break;
-                case Majestic.ImageMirror:
-                    if (Mirror?.Contains(value) ?? false)
-                    {
-                        SelectedMirror = value;
-                    }
-                    else
-                    {
-                        Mirror.Add(value);
-                        SelectedMirror = value;
-                    }
-
-                    break;
-                case Majestic.FpvEnabled:
-                    if (Mirror?.Contains(value) ?? false)
-                    {
-                        SelectedFpvEnabled = value;
-                    }
-                    else
-                    {
-                        FpvEnabled.Add(value);
-                        SelectedFpvEnabled = value;
-                    }
-
-                    break;
-                case Majestic.FpvNoiseLevel:
-                    if (FpvNoiseLevel?.Contains(value) ?? false)
-                    {
-                        SelectedFpvNoiseLevel = value;
-                    }
-                    else
-                    {
-                        FpvNoiseLevel.Add(value);
-                        SelectedFpvNoiseLevel = value;
-                    }
-
-                    break;
-                case Majestic.FpvRoiQp:
-                    if (FpvRoiQp?.Contains(value) ?? false)
-                    {
-                        SelectedFpvRoiQp = value;
-                    }
-                    else
-                    {
-                        FpvRoiQp.Add(value);
-                        SelectedFpvRoiQp = value;
-                    }
-
-                    break;
-                case Majestic.FpvRefEnhance:
-                    if (FpvRefEnhance?.Contains(value) ?? false)
-                    {
-                        SelectedFpvRefEnhance = value;
-                    }
-                    else
-                    {
-                        FpvRefEnhance.Add(value);
-                        SelectedFpvRefEnhance = value;
-                    }
-
-                    break;
-                case Majestic.FpvRefPred:
-                    if (FpvRefPred?.Contains(value) ?? false)
-                    {
-                        SelectedFpvRefPred = value;
-                    }
-                    else
-                    {
-                        FpvRefPred.Add(value);
-                        SelectedFpvRefPred = value;
-                    }
-
-                    break;
-                case Majestic.FpvIntraLine:
-                    if (FpvIntraLine?.Contains(value) ?? false)
-                    {
-                        SelectedFpvIntraLine = value;
-                    }
-                    else
-                    {
-                        FpvIntraLine.Add(value);
-                        SelectedFpvIntraLine = value;
-                    }
-
-                    break;
-                case Majestic.FpvIntraQp:
-                    if (FpvIntraQp?.Contains(value) ?? false)
-                    {
-                        SelectedFpvIntraQp = value;
-                    }
-                    else
-                    {
-                        FpvIntraQp.Add(value);
-                        SelectedFpvIntraQp = value;
-                    }
-
-                    break;
-                case Majestic.FpvRoiRect:
-                    // Parse the value and assign to individual properties
-                    var parts = value.Split('x');
-                    if (parts.Length == 4)
-                    {
-                        // Update ObservableCollection values
-                        // Update the first element of each ObservableCollection
-                        if (FpvRoiRectLeft.Count > 0) FpvRoiRectLeft[0] = parts[0];
-                        if (FpvRoiRectTop.Count > 0) FpvRoiRectTop[0] = parts[1];
-                        if (FpvRoiRectHeight.Count > 0) FpvRoiRectHeight[0] = parts[2];
-                        if (FpvRoiRectWidth.Count > 0) FpvRoiRectWidth[0] = parts[3];
-                    }
-                    else
-                    {
-                        Log.Warning($"Invalid format for FpvRoiRect value: {value}");
-                    }
-
-                    break;
-                
-                default:
-                    Log.Debug($"Unknown key: {fullKey}");
-                    break;
+                Log.Warning($"Invalid format for FpvRoiRect value: {fpvRoiRect}");
             }
+            
         }
+        
     }
 
-    private async Task SaveRestartMajesticCommand()
+    public async Task SaveRestartMajesticCommand()
     {
-        Log.Debug("Preparing to Save Majestic file.");
-        var majesticYamlContent =
-            await _sshClientService.DownloadFileAsync(DeviceConfig.Instance, Models.OpenIPC.MajesticFileLoc);
+        Logger.Debug("Preparing to Save Majestic YAML file.");
+        
+        var h = FpvRoiRectLeft[0];
+        UpdateCombinedValue();
+        
+        var updatedYamlContent = _yamlConfigService.UpdateYaml(_yamlConfig);
 
         try
         {
-            var yamlStream = new YamlStream();
-            using (var reader = new StringReader(majesticYamlContent))
-            {
-                yamlStream.Load(reader);
-            }
-
-            var root = (YamlMappingNode)yamlStream.Documents[0].RootNode;
-
-            foreach (var update in _yamlConfig) UpdateYamlNode(root, update.Key, update.Value);
-
-            string updatedFileContent;
-            using (var writer = new StringWriter())
-            {
-                yamlStream.Save(writer, false);
-                updatedFileContent = writer.ToString();
-            }
-
-            await _sshClientService.UploadFileStringAsync(DeviceConfig.Instance, Models.OpenIPC.MajesticFileLoc,
-                updatedFileContent);
-            await _sshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.MajesticRestartCommand);
-            await Task.Delay(5000);
-
-
-            Log.Debug("YAML file saved and majestic service restarted successfully.");
+            await SshClientService.UploadFileStringAsync(DeviceConfig.Instance, OpenIPC.MajesticFileLoc,
+                updatedYamlContent);
+            SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.MajesticRestartCommand);
+            Logger.Information("Majestic configuration updated and service is restarting.");
         }
         catch (Exception ex)
         {
-            Log.Debug($"Failed to save YAML file: {ex.Message}");
+            Logger.Error("Failed to update Majestic configuration: {ExceptionMessage}", ex.Message);
         }
-    }
-
-    public void UpdateYamlConfig(string key, string newValue)
-    {
-        if (_yamlConfig.ContainsKey(key))
-            _yamlConfig[key] = newValue;
-        else
-            _yamlConfig.Add(key, newValue);
-    }
-
-    // Recursively update YAML node based on key path
-    private void UpdateYamlNode(YamlMappingNode root, string keyPath, string newValue)
-    {
-        var keys = keyPath.Split('.');
-        var currentNode = root;
-
-        for (var i = 0; i < keys.Length - 1; i++)
-        {
-            var key = keys[i];
-            if (currentNode.Children.ContainsKey(new YamlScalarNode(key)))
-                currentNode = (YamlMappingNode)currentNode.Children[new YamlScalarNode(key)];
-            else
-                throw new KeyNotFoundException($"Key '{key}' not found in YAML.");
-        }
-
-        var lastKey = keys[^1];
-        if (currentNode.Children.ContainsKey(new YamlScalarNode(lastKey)))
-            currentNode.Children[new YamlScalarNode(lastKey)] = new YamlScalarNode(newValue);
-        else
-            throw new KeyNotFoundException($"Key '{lastKey}' not found in YAML.");
     }
 }
