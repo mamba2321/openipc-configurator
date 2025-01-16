@@ -13,9 +13,9 @@
     </UserControl.Styles>
 
     
-    <UserControl.DataContext>
-        <viewModels:PresetsTabViewModel />
-    </UserControl.DataContext>
+    <!-- <UserControl.DataContext> -->
+    <!--     <viewModels:PresetsTabViewModel /> -->
+    <!-- </UserControl.DataContext> -->
 
     <ScrollViewer>
         <StackPanel Margin="10">

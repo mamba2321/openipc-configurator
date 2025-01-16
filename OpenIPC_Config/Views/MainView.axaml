@@ -13,6 +13,8 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
+    
+    
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
     <Grid>
         <Grid.RowDefinitions>
@@ -58,6 +60,10 @@
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <views:VRXTabView />
                 </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="Presets" >
+                <views:PresetsTabView />
             </TabItem>
 
             <TabItem Header="Setup">

@@ -327,6 +327,8 @@ public class App : Application
         services.AddTransient<VRXTabViewModel>();
         services.AddTransient<WfbGSTabViewModel>();
         services.AddTransient<WfbTabViewModel>();
+        services.AddTransient<PresetsTabViewModel>();
+        
     }
     
     private static void RegisterViews(IServiceCollection services)
@@ -343,6 +345,7 @@ public class App : Application
         services.AddTransient<VRXTabView>();
         services.AddTransient<WfbGSTabView>();
         services.AddTransient<WfbTabView>();
+        services.AddTransient<PresetsTabView>();
     }
     
     private JObject createDefaultAppSettings()

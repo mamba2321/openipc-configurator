@@ -6,6 +6,8 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenIPC_Config.Models;
+using OpenIPC_Config.Services;
+using Serilog;
 
 namespace OpenIPC_Config.ViewModels;
 
@@ -36,7 +38,13 @@ public partial class PresetsTabViewModel : ViewModelBase
     
     public IRelayCommand ApplyFiltersCommand { get; }
 
-    public PresetsTabViewModel()
+    
+        
+    public PresetsTabViewModel(ILogger logger,
+        ISshClientService sshClientService,
+        IEventSubscriptionService eventSubscriptionService)
+        : base(logger, sshClientService, eventSubscriptionService)
+    
     {
         ApplyFiltersCommand = new RelayCommand(ApplyFilters);
 
@@ -89,20 +97,3 @@ public partial class PresetsTabViewModel : ViewModelBase
     }
 }
 
-public class Preset
-{
-    public string Name { get; set; }
-    public string Author { get; set; }
-    public string Description { get; set; }
-    public string Category { get; set; }
-    
-    // List of commands associated with the preset
-    public List<string> Commands { get; set; } = new();
-    
-    public ICommand ApplyPresetCommand { get; }
-
-    public Preset(Action<Preset> applyPresetAction)
-    {
-        ApplyPresetCommand = new RelayCommand(() => applyPresetAction(this));
-    }
-}
