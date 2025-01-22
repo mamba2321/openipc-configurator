@@ -54,24 +54,7 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private void LoadPresets()
     {
-        Presets.Add(new Preset(ApplyPreset) { Name = "Preset 1", Author = "OpenIPC", Description = "OpenIPC kicks ass", Category = "FPV" });
-        Presets.Add(new Preset(ApplyPreset) { Name = "Preset 2", Author = "Eduardo", Description = "Description 2", Category = "FPV" });
-        Presets.Add(new Preset(ApplyPreset) { Name = "Preset 3", Author = "ViperZ28", Description = "Description 3", Category = "FPV" });
-
-        // Populate Categories and Authors as before...
-        Categories.Clear();
-        foreach (var category in Presets.Select(p => p.Category).Distinct())
-        {
-            Categories.Add(category);
-        }
-
-        Authors.Clear();
-        foreach (var author in Presets.Select(p => p.Author).Distinct())
-        {
-            Authors.Add(author);
-        }
-
-        ApplyFilters();
+        
     }
 
     private void ApplyFilters()

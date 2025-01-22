@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
@@ -76,14 +77,14 @@ public class App : Application
         return configuration;
     }
     
-    private void InitializeBasicLogger()
-    {
-        Log.Logger = new LoggerConfiguration()
-            .WriteTo.Console()
-            .CreateLogger();
-
-        Log.Information("Basic logger initialized for early startup.");
-    }
+    // private void InitializeBasicLogger()
+    // {
+    //     Log.Logger = new LoggerConfiguration()
+    //         .WriteTo.Console()
+    //         .CreateLogger();
+    //
+    //     Log.Information("Basic logger initialized for early startup.");
+    // }
     
     private void ReconfigureLogger(IConfiguration configuration)
     {
@@ -172,37 +173,37 @@ public class App : Application
         return configPath;
     }
     
-    private void CreateAppSettings()
-    {
-        var configPath = GetConfigPath();
-
-        // Create default settings if not present
-        if (!File.Exists(configPath))
-        {
-            var defaultSettings = createDefaultAppSettings();
-            File.WriteAllText(configPath, defaultSettings.ToString());
-            Log.Information($"Default appsettings.json created at {configPath}");
-        }
-        
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile(configPath, false, true)
-            .AddJsonFile("appsettings.json", true, true)
-            // .AddJsonFile("appsettings.Development.json", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-            // .AddJsonFile(
-            //     $"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json",
-            //     true)
-            .Build();
-
-        Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(configuration)
-            .WriteTo.Sink(new EventAggregatorSink(ServiceProvider.GetRequiredService<IEventAggregator>()))
-            .CreateLogger();
-
-        Log.Information(
-            "**********************************************************************************************");
-        Log.Information($"Starting up log for OpenIPC Configurator v{VersionHelper.GetAppVersion()}");
-        Log.Information($"Using appsettings.json from {configPath}");
-    }
+    // private void CreateAppSettings()
+    // {
+    //     var configPath = GetConfigPath();
+    //
+    //     // Create default settings if not present
+    //     if (!File.Exists(configPath))
+    //     {
+    //         var defaultSettings = createDefaultAppSettings();
+    //         File.WriteAllText(configPath, defaultSettings.ToString());
+    //         Log.Information($"Default appsettings.json created at {configPath}");
+    //     }
+    //     
+    //     var configuration = new ConfigurationBuilder()
+    //         .AddJsonFile(configPath, false, true)
+    //         .AddJsonFile("appsettings.json", true, true)
+    //         // .AddJsonFile("appsettings.Development.json", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+    //         // .AddJsonFile(
+    //         //     $"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json",
+    //         //     true)
+    //         .Build();
+    //
+    //     Log.Logger = new LoggerConfiguration()
+    //         .ReadFrom.Configuration(configuration)
+    //         .WriteTo.Sink(new EventAggregatorSink(ServiceProvider.GetRequiredService<IEventAggregator>()))
+    //         .CreateLogger();
+    //
+    //     Log.Information(
+    //         "**********************************************************************************************");
+    //     Log.Information($"Starting up log for OpenIPC Configurator v{VersionHelper.GetAppVersion()}");
+    //     Log.Information($"Using appsettings.json from {configPath}");
+    // }
     
     public virtual async Task ShowUpdateDialogAsync(string releaseNotes, string downloadUrl, string newVersion)
     {
@@ -386,7 +387,7 @@ public class App : Application
             ),
             new JProperty("DeviceHostnameMapping",
                 new JObject(
-                    new JProperty("Camera", new JArray("openipc-ssc338q","openipc-ssc330")),
+                    new JProperty("Camera", new JArray("openipc-ssc338q","openipc-ssc30kq")),
                     new JProperty("Radxa", new JArray("radxa", "raspberrypi")),
                     new JProperty("NVR", new JArray("openipc-hi3536dv100"))
                 )

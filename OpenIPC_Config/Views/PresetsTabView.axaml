@@ -38,8 +38,8 @@
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" />
                                 <TextBlock Text="{Binding Author}" FontStyle="Italic" />
                                 <TextBlock Text="{Binding Description}" />
-                                <Button Content="Apply Preset"
-                                        Command="{Binding ApplyPresetCommand}" Margin="0,5,0,0" />
+                                <!-- <Button Content="Apply Preset" -->
+                                <!--         Command="{Binding ApplyPresetCommand}" Margin="0,5,0,0" /> -->
                             </StackPanel>
                         </Border>
                     </DataTemplate>
