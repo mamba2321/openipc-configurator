@@ -381,7 +381,7 @@ public partial class SetupTabViewModel : ViewModelBase
             var pingTask = Task.Run(async () =>
             {
                 var ping = new Ping();
-                var pingReply = await ping.SendPingAsync(host);
+                   var pingReply = await ping.SendPingAsync(host);
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
