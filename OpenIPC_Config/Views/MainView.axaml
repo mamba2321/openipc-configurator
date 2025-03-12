@@ -14,8 +14,10 @@
         <!-- Converters -->
         <converters:BooleanToWidthConverter x:Key="BooleanToWidthConverter" />
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
         <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
     </UserControl.Resources>
+<<<<<<< HEAD
     
     <!-- Main Layout -->
     <Grid>
@@ -44,6 +46,71 @@
                         Converter={StaticResource BooleanToWidthConverter},
                         ConverterParameter='80,180'}"
                         Padding="0,0,10,0">
+=======
+
+    <DockPanel Background="Gray">
+        <!-- Header -->
+        <views:HeaderView DockPanel.Dock="Top" />
+        <views:LogViewer DockPanel.Dock="Bottom" />
+
+        <!-- <ToggleSwitch DockPanel.Dock="Top" -->
+        <!--               FontSize="10" -->
+        <!--               OnContent="Expand" OffContent="Collapse" -->
+        <!--               Padding="0" -->
+        <!--               Margin="0" -->
+        <!--               IsChecked="{Binding IsTabsCollapsed, Converter={StaticResource InvertedBooleanConverter}}" /> -->
+
+
+        <!-- Sidebar Tabs -->
+        <TabControl x:Name="MainTabControl"
+                    DockPanel.Dock="Left"
+                    ItemsSource="{Binding Tabs}"
+                    SelectedIndex="{Binding SelectedTabIndex}"
+                    SelectedItem="{Binding SelectedTab}"
+                    Width="{Binding IsTabsCollapsed, 
+                    Converter={StaticResource BooleanToWidthConverter},
+                    ConverterParameter='80,180'}">
+
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Height="40" VerticalAlignment="Center" Margin="0,0,0,0">
+                        <!-- Define two columns: one for the icon and one for the text -->
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30" /> <!-- Fixed width for the icon -->
+                            <ColumnDefinition Width="*" /> <!-- Remaining space for the text -->
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Icon aligned to the far left -->
+                        <Svg Grid.Column="0" Path="{Binding Icon}"
+
+                             VerticalAlignment="Center"
+                             HorizontalAlignment="Center" />
+
+                        <!-- Text aligned to the far right -->
+                        <TextBlock Grid.Column="1" Text="{Binding TabName}"
+                                   Padding="0"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Left"
+                                   FontSize="18"
+                                   Margin="10,0,10,0"
+                                   IsVisible="{Binding IsTabsCollapsed, 
+                                        Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    </Grid>
+                </DataTemplate>
+
+            </TabControl.ItemTemplate>
+            
+
+        </TabControl>
+        
+        <Panel Background="Transparent" Margin="0" >
+            <StackPanel Orientation="Horizontal">
+                <Button Background="Transparent" BorderThickness="0" 
+                        Padding="0"
+                        Command="{Binding ToggleTabsCommand}">
+                    
+                <Svg VerticalAlignment="Center" Path="/Assets/Icons/drawer-handle.svg" />
+>>>>>>> parent of 06fa738 (update icons)
                 
                 <TabControl.ItemTemplate>
                     <DataTemplate>
@@ -53,6 +120,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
+<<<<<<< HEAD
                             <!-- Icon -->
                             <Svg Grid.Column="0" Path="{Binding Icon}" Margin="0" />
 
@@ -103,3 +171,10 @@
         <views:LogViewer Grid.Row="2" Margin="3,3,3,3" />
     </Grid>
 </UserControl>
+=======
+        <!-- Main Content -->
+        <ContentControl Content="{Binding SelectedTab.Content}"
+                        Margin="0" Padding="0" Background="Transparent" />
+    </DockPanel>
+</UserControl>
+>>>>>>> parent of 06fa738 (update icons)
