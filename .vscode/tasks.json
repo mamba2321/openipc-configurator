@@ -1,0 +1,24 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "dotnet",
+			"task": "build c:\\Users\\glao2\\OneDrive\\Documents\\GitHub\\openipc-configurator\\OpenIPC_Config.Desktop\\OpenIPC_Config.Desktop.csproj",
+			"file": "c:\\Users\\glao2\\OneDrive\\Documents\\GitHub\\openipc-configurator\\OpenIPC_Config.Desktop\\OpenIPC_Config.Desktop.csproj",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "dotnet: build c:\\Users\\glao2\\OneDrive\\Documents\\GitHub\\openipc-configurator\\OpenIPC_Config.Desktop\\OpenIPC_Config.Desktop.csproj"
+		},
+		{
+			"type": "dotnet",
+			"task": "watch OpenIPC_Config",
+			"file": "C:\\Users\\glao2\\OneDrive\\Documents\\GitHub\\openipc-configurator\\OpenIPC_Config\\OpenIPC_Config.csproj",
+			"problemMatcher": [],
+			"label": "dotnet: watch OpenIPC_Config",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}
